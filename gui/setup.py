@@ -1,7 +1,7 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="gui",
     version="0.1",
-    py_modules=["ctk_windows"],  # Replace "gui" with the actual script name (e.g., gui.py)
+    packages=["gui"],  # Treats the gui folder as a package
 )
