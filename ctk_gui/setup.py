@@ -1,7 +1,7 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 setup(
-    name="cgk_gui",
+    name="ctk_gui",
     version="0.1",
-    packages=find_packages(),
+    packages=find_namespace_packages(include=['ctk_gui*']),
 )
