@@ -10,6 +10,15 @@ import webbrowser
 
 from ctk_gui.ctk_windows import PopupError, PopupYesNo
 
+def week_number(date: datetime.date) -> int:
+    '''returns a week number for weeks starting with Sunday'''
+    if not isinstance(date, datetime.date):
+        try:
+            date = datetime.datetime.strptime(date,"%Y-%m-%d")
+        except:
+            raise BaseException("Date format not recognized")
+    return date.isocalendar().week + 1 if date.weekday() == 6 else date.isocalendar().week
+
 def open_file_folder(path: str) -> None:
     try:
         os.startfile(path)
