@@ -1,92 +1,95 @@
-import os, html
+from typing import Final
+from openai import OpenAI, NotFoundError
+from openai.types.beta.thread import Thread
+
+from pinecone import Pinecone, ServerlessSpec
+import uuid, os
+from datetime import date
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
-from typing import Final
 
-from openai import OpenAI, NotFoundError # future development
+OPENAI_KEY: Final = os.getenv('KNOWLEDGE_BASE_AI_KEY')
+PINECONE_API_KEY=os.getenv('PINECONE_API_KEY')
 
-from numpy import dot, array
-from numpy.linalg import norm
-import pandas as pd
+pc = Pinecone(api_key=PINECONE_API_KEY)
+index = pc.Index('knowledge-db')
+NAMESPACE = 'db'
 
-from connectors import gdrive as gd
-
-
-OPENAI_KEY: Final = os.getenv('AI_KEY_EMBEDDING')
-EMB_MODEL: str = "text-embedding-3-small"
-EMB_ROW_LIMIT: int = 1000
-THRESH = 0.3
-N_LABELS = 1
-COMPLAINTS_FILE_ID = '1tMMJ6_3qe5ickYtoHYp0M-DfV5ffZKV1'
-
-client = OpenAI(api_key=OPENAI_KEY)
+client = OpenAI(api_key = OPENAI_KEY)
 
 def get_embedding(text):
-    """Returns an embedding or embeddings array for a given string or list of strings using OpenAI's embedding endpoint"""
     response = client.embeddings.create(
         model="text-embedding-3-small",
         input=text
     )
     return response.data[0].embedding
 
-def cosine_similarity(a, b):
-    return dot(a, b) / (norm(a) * norm(b))
-
-def split_df(df: pd.DataFrame, num_rows: int) -> list[pd.DataFrame]:
-    """
-    Splits a given dataframe into chunks of specified number of rows, and puts the chunks into a list for further use.
-    """
-    if len(df) > num_rows:
-        df_list = []
-        for i in range(0,len(df),num_rows):
-            temp_df = df.iloc[i:i+num_rows]
-            df_list.append(temp_df)
-    else:
-        df_list = [df]
-    return df_list
-
-def get_embedding_df(df: pd.DataFrame, df_col: str) -> pd.DataFrame:
-    result = pd.DataFrame()
-    if len(df) > EMB_ROW_LIMIT:
-        df_list = split_df(df, EMB_ROW_LIMIT)
-    else:
-        df_list = [df]
-    for chunk in df_list:
-        chunk.loc[:,df_col] = chunk.loc[:,df_col].astype(str).apply(html.unescape)
-        texts = chunk[df_col].values.tolist()
-        response = client.embeddings.create(
-            input=texts,
-            model=EMB_MODEL)
-        emb = pd.DataFrame(response.data)[0].apply(lambda x: x[1])
-        chunk.loc[:,'emb'] = emb.values
-        result = pd.concat([result,chunk], axis = 0)
+def add_record(problem, solution):
+    text = '\n\n'.join((problem,solution))
+    embedding = get_embedding(text)
+    vectors = [
+        {
+            'id':str(uuid.uuid4()),
+            'values':embedding,
+            'metadata':{
+                'problem':problem,
+                'solution':solution,
+                'date_created':str(date.today()),
+                'date_modified':str(date.today())
+                }
+            }
+        ]
+    result = index.upsert(vectors = vectors, namespace = NAMESPACE)    
     return result
 
-def clusterize_texts(df: pd.DataFrame, df_col: str, num_clusters: int = 10):
-    from sklearn.cluster import KMeans
-    embeddings = array(df[df_col].values.tolist())
-    kmeans = KMeans(n_clusters=num_clusters)
-    kmeans.fit(embeddings)
-    labels = kmeans.labels_
-    df['cluster'] = labels
-    return df
+def delete_record_from_vector(key: str):
+    index.delete(ids=[key], namespace=NAMESPACE)
     
-def get_top_labels(row, n_labels):
-    top_labels = row[row>THRESH].nlargest(n_labels).index.tolist()
-    return top_labels
+def modify_record_vector(key: str, text: tuple):
+    current_record = index.fetch(ids = [key], namespace = NAMESPACE)
+    problem, solution = text
+    embedding = get_embedding('\n\n'.join(text))
+    index.update(
+        id=key,
+        values=embedding,
+        set_metadata={
+            "problem": problem, "solution": solution,
+            'date_created':current_record.vectors[key]['metadata']['date_created'],
+            'date_modified':str(date.today())
+            },
+            namespace=NAMESPACE
+        )
 
-def assign_top_labels(df: pd.DataFrame, labels: pd.DataFrame,labels_col: str):
-    sim_columns = labels[labels_col].tolist()
-    df['top reasons'] = df[sim_columns].apply(get_top_labels, n_labels=N_LABELS, axis=1)
-    for sim_col in sim_columns:
-        del df[sim_col]
-    return df
+def vector_search(query_str: str):
+    query_emb = get_embedding(query_str)
+    results = index.query(
+        namespace=NAMESPACE,
+        vector=query_emb,
+        top_k=5,
+        include_values=False,
+        include_metadata=True
+    )
+    return results
 
-def measure_label_relevance(df: pd.DataFrame,emb_col: str,labels: pd.DataFrame,labels_col: str,) -> pd.DataFrame:
-    labels = get_embedding_df(labels, labels_col)
-    for label in labels[labels_col].values.tolist():
-        print(f'Matching "{label}" to dataset')
-        label_emb = labels[labels[labels_col] == label]['emb'].values[0]
-        df[label] = df[emb_col].map(lambda x: cosine_similarity(x, label_emb))
-    return df
+def get_response(query, search_results):
+    pre_prompt = f'''
+                Below is the database search for my question "{query}".
+                Please summarize and structure the search to best answer my question. If there is already a structure in the search - keep it reasonably intact.
+                Please drop irrelevant results from your summary, but make sure to keep all links, file references and tool mentions.
+                If there is a specific answer to my question in the search results - please answer it first, and then summarize the rest.
+                If there is not enough information in search results to answer user's question - let the user know about it and try to answer with your own knowledge.
+                Try to answer the user in the language which he used to ask the question, if possible.
+                Make sure to include the "created" date and also "modified" date if it's different from the date of creation.
+                '''
+    response = client.chat.completions.create(
+        messages = [
+            {'role':'user','content':pre_prompt},
+            {'role':'user','content':search_results}
+            ],
+        model = 'gpt-4o-mini',
+        stream = True
+    )
+    return response
