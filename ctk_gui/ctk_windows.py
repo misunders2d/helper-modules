@@ -50,7 +50,7 @@ class PopupWarning(ctk.CTk):
         self.destroy()
 
 class PopupYesNo(ctk.CTk):
-    def __init__(self, message, title="Question"):
+    def __init__(self, message='Question', title="Question"):
         super().__init__()
         self.geometry('300x100')
         self.title(title)
@@ -76,6 +76,33 @@ class PopupYesNo(ctk.CTk):
         self.result = value
         self.return_value()
         self.quit()
+
+    def return_value(self):
+        return self.result
+
+class PopupGetText(ctk.CTk):
+    def __init__(self, title='Text prompt', width=300, height=200):
+        super().__init__()
+        self.geometry(f'{width}x{height}')
+        self.title(title)
+        self.result = None
+
+        self.input = ctk.CTkTextbox(self, width=width)
+        self.input.pack(pady=10)
+
+        self.button = ctk.CTkButton(self, text='OK', command=self.ok_button_click)
+        self.button.pack()
+
+        self.update_idletasks()
+        required_width = max(self.input.winfo_reqwidth(), self.winfo_reqwidth()) + 20
+        required_height = self.input.winfo_reqheight() + self.button.winfo_reqheight() + 40
+        self.geometry(f"{required_width}x{required_height}")
+
+        self.mainloop()
+
+    def ok_button_click(self):
+        self.result = self.input.get(0.0, ctk.END).strip()
+        self.destroy()
 
     def return_value(self):
         return self.result
