@@ -87,7 +87,7 @@ class PopupGetText(ctk.CTk):
         self.title(title)
         self.result = None
 
-        self.input = ctk.CTkTextbox(self, width=width)
+        self.input = ctk.CTkTextbox(self, width=width, height=height/2)
         self.input.pack(pady=10)
 
         self.button = ctk.CTkButton(self, text='OK', command=self.ok_button_click)
