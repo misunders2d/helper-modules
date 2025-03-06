@@ -11,6 +11,20 @@ import datetime
 
 from ctk_gui.ctk_windows import PopupError, PopupYesNo
 
+excluded_collections = [
+    'Cotton 300TC Percale Sheet Set','Egyptian Cotton Striped Bed Sheet Set',
+    'Cotton Flannel Pillowcases','Decorative Pillow','All-Year-Round Throws',
+    'Down Alternative Comforter','Faux Rabbit Fur Area Rug','Comforter',
+    'Bed Skirt','3pc Microfiber Bed Sheet Set Full','Cotton Pillowcases',
+    'Blackout Curtains','Cotton Flannel Fitted Sheet','Faux Fur Throw','Plush Coverlet Set',
+    '3pc Microfiber Bed Sheet Set Queen','6 PC Egyptian Cotton Striped Bed Sheet Set',
+    'Faux Cachemire Acrylic Throw Blanket','Cotton 300TC Percale Pillowcase',
+    'Acrylic Knit Sherpa Throw Blanket','Cotton Quilt','Cotton 300TC Sateen Sheet Set',
+    'Egyptian Cotton Bed Sheet Set','Jersey Cotton Quilt','Bundles','Pillow inserts'
+    ]
+user_folder = os.path.join(os.path.expanduser('~'), 'temp')
+
+
 def week_number(date: datetime.date) -> int:
     '''returns a week number for weeks starting with Sunday'''
     if not isinstance(date, datetime.date):
@@ -29,105 +43,6 @@ def open_file_folder(path: str) -> None:
     except Exception as e:
         print(f'Uncaught exception occurred: {e}')
     return None
-
-def push_dicts(threaded=False, *args, **kwargs):
-    from connectors import gcloud as gc
-    import threading
-    drive_id = '0AMdx9NlXacARUk9PVA'
-    
-    usa_path = gd.find_file_id(folder_id='1zIHmbWcRRVyCTtuB9Atzam7IhAs8Ymx4', drive_id=drive_id, filename='Dictionary.xlsx')
-    ca_path = gd.find_file_id(folder_id='1ZijSZTqY1_5F307uMkdcneqTKIoNSsds', drive_id=drive_id, filename='Dictionary_CA.xlsx')
-    eu_path = gd.find_file_id(folder_id='1uye8_FNxI11ZUOKnUYUfko1vqwpJVnMj', drive_id=drive_id, filename='Dictionary_EU.xlsx')
-    uk_path = gd.find_file_id(folder_id='1vt8UB2FeQp0RJimnCATI8OQt5N-bysx-', drive_id=drive_id, filename='Dictionary_UK.xlsx')
-    
-    
-    paths = (usa_path,ca_path,eu_path,uk_path)
-    dicts = {}
-    
-    def read_dictionary(dicts, path, name):
-
-        market_dict = pd.read_excel(gd.download_file(path))
-        market_dict = gc.normalize_columns(market_dict)
-        dicts[name] = market_dict
-        return None
-    if threaded:
-        threads = [
-            threading.Thread(target = read_dictionary, args = (dicts, paths[0], 'US')),
-            threading.Thread(target = read_dictionary, args = (dicts, paths[1], 'CA')),
-            threading.Thread(target = read_dictionary, args = (dicts, paths[2], 'EU')),
-            threading.Thread(target = read_dictionary, args = (dicts, paths[3], 'UK'))
-            ]
-        
-        _ = [thread.start() for thread in threads]
-        _ = [thread.join() for thread in threads]
-    else:
-        for path, name in zip(paths,['US','CA','EU','UK']):
-            read_dictionary(dicts, path, name)
-    
-    
-    dictionary_us = dicts.get('US')
-    dictionary_ca = dicts.get('CA')
-    dictionary_eu = dicts.get('EU')
-    dictionary_uk = dicts.get('UK')
-    
-    def push_dictionary(dictionary, table):
-        dictionary['pattern'] = dictionary['pattern'].astype('str')
-        for col in dictionary.columns:
-            dictionary[col] = dictionary[col].astype(str)
-            dictionary[col] = dictionary[col].replace({r'[^\x00-\x7F]+':''}, regex=True)
-        try:
-            gc.push_to_cloud(dictionary, destination=table, if_exists='replace')
-           
-        except Exception as e:
-            if 'window' in kwargs:
-                window = kwargs['window']
-                window.write_event_value('DICTS_ERROR',e)
-            else:
-                print(f'The following error occurred:\n{e}')
-        return None
-    
-    if threaded:
-        threads = [
-            threading.Thread(target = push_dictionary, args = (dictionary_us,'auxillary_development.dictionary')),
-            threading.Thread(target = push_dictionary, args = (dictionary_ca,'auxillary_development.dictionary_ca')),
-            threading.Thread(target = push_dictionary, args = (dictionary_eu,'auxillary_development.dictionary_eu')),
-            threading.Thread(target = push_dictionary, args = (dictionary_uk,'auxillary_development.dictionary_uk'))
-            ]
-
-        _ = [thread.start() for thread in threads]
-        _ = [thread.join() for thread in threads]
-    else:
-        push_dictionary(dictionary_us,'auxillary_development.dictionary')
-        push_dictionary(dictionary_ca,'auxillary_development.dictionary_ca')
-        push_dictionary(dictionary_eu,'auxillary_development.dictionary_eu')
-        push_dictionary(dictionary_uk,'auxillary_development.dictionary_uk')
-    print('All done')
-    return None
-
-def normalize_columns(df):
-    # import pandas as pd
-    pattern = r'^([0-9].)'
-    new_cols = [x.strip()
-                .replace(' ','_')
-                .replace('-','_')
-                .replace('?','')
-                .replace(',','')
-                .replace('.','')
-                .replace('(','')
-                .replace(')','')
-                .lower()
-                for x in df.columns]
-    new_cols = [re.sub(pattern, '_'+re.findall(pattern,x)[0], x) if re.findall(pattern,x) else x for x in new_cols]
-    df.columns = new_cols
-    date_cols = [x for x in df.columns if 'date' in x.lower()]
-    if date_cols !=[]:
-        df[date_cols] = df[date_cols].astype('str')
-        df = df.sort_values(date_cols, ascending = True)
-    float_cols = [x for x in df.select_dtypes('float64').columns]
-    int_cols = [x for x in df.select_dtypes('int64').columns]
-    df[float_cols] = df[float_cols].astype('float32')
-    df[int_cols] = df[int_cols].astype('int32')
-    return df
 
 def export_to_excel(
         dfs: List[pd.DataFrame],
@@ -191,126 +106,6 @@ def get_comments():
     else:
         PopupError('Please select a file')
     return None
-
-def sku_creation():
-    '''
-    Quick function to rename sizes, capitalize and remove spaces from colors
-    for new SKU creation
-    Accepts: nothing
-    Returns
-    -------
-    df : TYPE
-        DESCRIPTION.
-
-    '''
-    colors = input('Colors?\n').split('\n')
-    sizes = input('Sizes?\n').split('\n')
-    
-    size_renaming = {
-        'Twin XL':'TXL',
-        'Twin':'T',
-        'Full':'F',
-        'Queen':'Q',
-        'Split King':'SK',
-        'Cal King':'CK',
-        'King':'K'
-        }
-    
-    prefix = input('prefix?')
-    df = pd.DataFrame(list(zip(sizes,colors)), columns = ['Size','Color'])
-    df['Prefix'] = prefix
-    df['SKU_Size'] = df['Size'].replace(size_renaming)
-    df['SKU_Color'] = df['Color'].str.strip().str.replace(' ','-').str.upper()
-    df['Result'] = df['Prefix']+'-'+df['SKU_Size']+'-'+df['SKU_Color']
-    df['len'] = df['Result'].apply(lambda x: len(x))
-    df['Warning'] = df['len'].apply(lambda x: 'Warning' if x > 40 else '')
-    return df
-
-def kw_ranking_weighted(positions = None, sales = None):
-    '''
-    Generate a weighted position (by sales) for our KW ranking standings
-
-    Returns
-    -------
-    (int) Number of our position.
-
-    '''
-    import numpy as np
-    if all([positions is None, sales is None]):
-        positions = input('Input list of positions\n').split('\n')
-        sales = input('Input keyword sales\n').split('\n')
-    positions = [int(x.replace('>','').replace('#Н/Д','306')) for x in positions]
-    sales = [int(x.replace('-','0').replace(',','').replace('#Н/Д','0')) for x in sales]
-    if len(positions) == len(sales):
-        result = int(np.dot(sales,positions) / sum(sales))
-        return result
-    else:
-        return 0
-
-
-def bash_quote(dump = False,lang = 'ru'):
-    wpath = get_db_path('US')[9]
-    link = "http://bash.org/?random" if lang == 'en' else "http://bashorg.org/random"
-    search = 'qt' if lang == 'en' else 'quote'
-    bash_file = os.path.join(wpath,'bash') if lang == 'en' else os.path.join(wpath,'bash_ru')
-    import random
-    import pickle
-    def get_jokes():
-        from bs4 import BeautifulSoup as bs
-        import requests
-        page = requests.get(link)
-        soup = bs(page.content, features = 'lxml')
-        jokes = soup.find_all(class_ = search)
-        jokes = [joke.get_text('<br/>').replace('<br/>','\n') for joke in jokes] if lang == 'ru' else [joke.get_text() for joke in jokes]
-        return jokes
-    def read_bash():
-        with open(bash_file,'rb') as f:
-            check = pickle.load(f)
-        return check
-    def write_bash(text):
-        with open(bash_file,'wb') as f:
-            pickle.dump(text,f)
-        return None
-        
-    if os.path.isfile(bash_file):
-        if dump == False:
-            with open(bash_file,'rb') as f:
-                jokes = pickle.load(f)
-            joke = jokes[random.randint(0,len(jokes)-1)]
-            return joke
-        if dump == True:
-            jokes = get_jokes()
-            check = read_bash()
-            for j in jokes:
-                if j not in check:
-                    check.append(j)
-            write_bash(check)
-            joke = check[random.randint(0,len(check)-1)]
-            return joke
-    elif not os.path.isfile(bash_file):
-        jokes = get_jokes()
-        with open(bash_file,'wb') as f:
-            pickle.dump(jokes,f)
-        joke = jokes[random.randint(0,len(jokes)-1)]
-        return joke
-
-def cancelled_shipments(account = 'US'):
-    paths = get_db_path('US')
-    path = os.path.join(paths[7],'Cancelled shipments')
-    d_path = get_db_path(account)[1]
-    d = pd.read_excel(d_path, usecols = ['ASIN','SKU'])
-    file = get_file_paths([path])[-1]
-    print(f'Latest cancelled shipments file is: {os.path.basename(file)}')
-    cancelled = pd.read_excel(file)
-    cancelled = pd.merge(cancelled, d, how = 'left', left_on = 'Sku', right_on = 'SKU').dropna(subset = ['ASIN'])
-    # if account == 'CA':
-    #     cancelled = cancelled[cancelled['Comments'] == 'Canada']
-    cancelled = cancelled.pivot_table(
-        values = 'Units to Cancel',
-        index = 'ASIN',
-        aggfunc = 'sum'
-        ).reset_index()
-    return cancelled
 
 def password_generator(x):
     '''
