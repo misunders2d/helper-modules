@@ -10,7 +10,7 @@ class PopupError(ctk.CTk):
         super().__init__()
         self.geometry('300x100')
         self.title("Error")
-        self.message = '\n'.join(wrap(message), string_length)
+        self.message = '\n'.join(wrap(message, string_length))
 
         self.label = ctk.CTkLabel(self, text=self.message)
         self.label.pack(pady=10)
@@ -33,7 +33,7 @@ class PopupWarning(ctk.CTk):
         super().__init__()
         self.geometry('300x100')
         self.title("Warning")
-        self.message = '\n'.join(wrap(message), string_length)
+        self.message = '\n'.join(wrap(message, string_length))
 
         self.label = ctk.CTkLabel(self, text=self.message)
         self.label.pack(pady=10)
@@ -56,7 +56,7 @@ class PopupYesNo(ctk.CTk):
         super().__init__()
         self.geometry('300x100')
         self.title(title)
-        self.message = '\n'.join(wrap(message), string_length)
+        self.message = '\n'.join(wrap(message, string_length))
 
         self.label = ctk.CTkLabel(self, text=self.message)
         self.label.pack(pady=10)
