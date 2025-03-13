@@ -178,5 +178,3 @@ class PopupGetDate:
 
     def get_date(self):
         return self.selected_date
-
-print(PopupYesNo('dlkfj;lkjasd;flkjasd;lfkj;asldkfj ;lkjasd;fl ;lkja;sdlfkj ;lkja;lkja;sdlkfj a;slkj ;alskdjf;l kj;lakj;laskdjf ;laksdjf'))
