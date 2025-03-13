@@ -2,15 +2,15 @@ import customtkinter as ctk
 from customtkinter import filedialog
 from tkcalendar import Calendar
 from datetime import datetime
-from textwrap import TextWrapper
-wrapper = TextWrapper(width=60)
+from textwrap import wrap
+string_length=60
 
 class PopupError(ctk.CTk):
     def __init__(self, message):
         super().__init__()
         self.geometry('300x100')
         self.title("Error")
-        self.message = '\n'.join(wrapper(message))
+        self.message = '\n'.join(wrap(message), string_length)
 
         self.label = ctk.CTkLabel(self, text=self.message)
         self.label.pack(pady=10)
@@ -33,7 +33,7 @@ class PopupWarning(ctk.CTk):
         super().__init__()
         self.geometry('300x100')
         self.title("Warning")
-        self.message = '\n'.join(wrapper(message))
+        self.message = '\n'.join(wrap(message), string_length)
 
         self.label = ctk.CTkLabel(self, text=self.message)
         self.label.pack(pady=10)
@@ -56,7 +56,7 @@ class PopupYesNo(ctk.CTk):
         super().__init__()
         self.geometry('300x100')
         self.title(title)
-        self.message = '\n'.join(wrapper(message))
+        self.message = '\n'.join(wrap(message), string_length)
 
         self.label = ctk.CTkLabel(self, text=self.message)
         self.label.pack(pady=10)
