@@ -62,7 +62,7 @@ def PopupYesNo(message="Are you sure?", title="Popup", master=None):
     dialog.resizable(False, False)
     dialog.grab_set()
 
-    label = ctk.CTkLabel(master=dialog, text=message)
+    label = ctk.CTkLabel(master=dialog, text='\n'.join(wrap(message, string_length)))
     label.pack(pady=20)
 
     result = [None]
