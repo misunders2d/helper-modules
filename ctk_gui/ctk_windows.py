@@ -58,8 +58,11 @@ def PopupYesNo(message="Are you sure?", title="Popup", master=None):
 
     dialog = ctk.CTkToplevel(master)
     dialog.title(title)
-    dialog.geometry("300x150")
-    dialog.resizable(False, False)
+    dialog.geometry("400x250")
+    dialog.resizable(True, True)
+    
+    # Ensure the dialog is rendered before grabbing
+    dialog.update()
     dialog.grab_set()
 
     label = ctk.CTkLabel(master=dialog, text='\n'.join(wrap(message, string_length)))
@@ -175,3 +178,5 @@ class PopupGetDate:
 
     def get_date(self):
         return self.selected_date
+
+print(PopupYesNo('dlkfj;lkjasd;flkjasd;lfkj;asldkfj ;lkjasd;fl ;lkja;sdlfkj ;lkja;lkja;sdlkfj a;slkj ;alskdjf;l kj;lakj;laskdjf ;laksdjf'))
