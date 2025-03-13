@@ -77,7 +77,7 @@ class PopupYesNo(ctk.CTk):
     def button_click(self, value):
         self.result = value
         self.return_value()
-        self.quit()
+        self.destroy()
 
     def return_value(self):
         return self.result
@@ -108,7 +108,6 @@ class PopupGetText(ctk.CTk):
 
     def return_value(self):
         return self.result
-
 
 class PopupGetDate:
     def __init__(self, title="Select Date"):
