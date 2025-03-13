@@ -51,36 +51,41 @@ class PopupWarning(ctk.CTk):
     def ok_button_click(self):
         self.destroy()
 
-class PopupYesNo(ctk.CTk):
-    def __init__(self, message='Question', title="Question"):
-        super().__init__()
-        self.geometry('300x100')
-        self.title(title)
-        self.message = '\n'.join(wrap(message, string_length))
+def PopupYesNo(message="Are you sure?", title="Popup", master=None):
+    if master is None:
+        master = ctk.CTk()
+        master.withdraw()
 
-        self.label = ctk.CTkLabel(self, text=self.message)
-        self.label.pack(pady=10)
+    dialog = ctk.CTkToplevel(master)
+    dialog.title(title)
+    dialog.geometry("300x150")
+    dialog.resizable(False, False)
+    dialog.grab_set()
 
-        self.button_yes = ctk.CTkButton(self, text='Yes', command=lambda: self.button_click(True))
-        self.button_yes.pack(pady=10, side='left')
+    label = ctk.CTkLabel(master=dialog, text=message)
+    label.pack(pady=20)
 
-        self.button_no = ctk.CTkButton(self, text='No', command=lambda: self.button_click(False))
-        self.button_no.pack(pady=10, side='right')
+    result = [None]
 
-        self.update_idletasks()
-        required_width = max(self.label.winfo_reqwidth(), self.winfo_reqwidth()) + 20
-        required_height = self.label.winfo_reqheight() + self.button_yes.winfo_reqheight( )+ self.button_no.winfo_reqheight() + 40
-        self.geometry(f"{required_width}x{required_height}")
+    def on_yes():
+        result[0] = "Yes"
+        dialog.destroy()
 
-        self.mainloop()
+    def on_no():
+        result[0] = "No"
+        dialog.destroy()
 
-    def button_click(self, value):
-        self.result = value
-        self.return_value()
-        self.destroy()
+    yes_button = ctk.CTkButton(master=dialog, text="Yes", command=on_yes)
+    yes_button.pack(side="left", padx=20, pady=10)
 
-    def return_value(self):
-        return self.result
+    no_button = ctk.CTkButton(master=dialog, text="No", command=on_no)
+    no_button.pack(side="right", padx=20, pady=10)
+
+    dialog.protocol("WM_DELETE_WINDOW", on_no)
+    dialog.wait_window()
+    if master.master is None:
+        master.destroy()
+    return result[0]
 
 class PopupGetText(ctk.CTk):
     def __init__(self, title='Text prompt', width=300, height=200):
