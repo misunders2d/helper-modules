@@ -1,4 +1,5 @@
 from ctk_gui.ctk_windows import PopupError
+import sys
 
 def error_checker(func):
     def wrapper(*args, **kwargs):
@@ -7,5 +8,5 @@ def error_checker(func):
         except Exception as e:
             error_str = f'function {func.__name__} returned an error:\n{e}'
             PopupError(message=error_str)
-            raise BaseException(e)
+            sys.exit(1)
     return wrapper
