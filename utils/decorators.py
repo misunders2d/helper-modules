@@ -7,5 +7,5 @@ def error_checker(func):
         except Exception as e:
             error_str = f'function {func.__name__} returned an error:\n{e}'
             PopupError(message=error_str)
-            raise
+            raise BaseException(e)
     return wrapper
