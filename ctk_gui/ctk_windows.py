@@ -31,7 +31,7 @@ class PopupError(ctk.CTk):
 class PopupWarning(ctk.CTk):
     def __init__(self, message):
         super().__init__()
-        self.geometry('300x100')
+        self.geometry('400x150')
         self.title("Warning")
         self.message = '\n'.join(wrap(message, string_length))
 
@@ -42,8 +42,8 @@ class PopupWarning(ctk.CTk):
         self.button.pack(pady=10)
 
         self.update_idletasks()
-        required_width = max(self.label.winfo_reqwidth(), self.winfo_reqwidth()) + 20
-        required_height = self.label.winfo_reqheight() + self.button.winfo_reqheight() + 40
+        required_width = max(self.label.winfo_reqwidth(), self.winfo_reqwidth()) + 100
+        required_height = self.label.winfo_reqheight() + self.button.winfo_reqheight() + 60
         self.geometry(f"{required_width}x{required_height}")
 
         self.mainloop()
