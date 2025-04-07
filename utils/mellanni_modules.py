@@ -58,8 +58,9 @@ def export_to_excel(
     try:
         with pd.ExcelWriter(full_output, engine = 'xlsxwriter') as writer:
             for df, sheet_name in list(zip(dfs,sheet_names)):
-                df.to_excel(excel_writer = writer, sheet_name = sheet_name, index = False)
-                format_header(df, writer, sheet_name)
+                if len(df) > 0:
+                    df.to_excel(excel_writer = writer, sheet_name = sheet_name, index = False)
+                    format_header(df, writer, sheet_name)
     except PermissionError:
         print(f'{filename} is open, please close the file first')
         export_to_excel(dfs, sheet_names, filename, out_folder)
