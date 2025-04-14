@@ -12,9 +12,9 @@ excluded_collections = [
     'Egyptian Cotton Bed Sheet Set','Jersey Cotton Quilt','Bundles','Pillow inserts'
     ]
 user_folder = os.path.join(os.path.expanduser('~'), 'temp')
-if not os.path.isdir(user_folder):
+if not os.path.exists(user_folder):
     os.makedirs(user_folder)
 
 secrets_folder = os.path.join(os.getcwd(),'.secrets')
-if not os.path.isdir(secrets_folder):
+if not os.path.exists(secrets_folder):
     os.makedirs(secrets_folder)
