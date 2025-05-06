@@ -72,6 +72,8 @@ def normalize_columns(df):
                 .replace(',','')
                 .replace('.','')
                 .replace('/','_')
+                .replace('(','')
+                .replace(')','')
                 .lower()
                 for x in df.columns]
     new_cols = [re.sub(pattern, '_'+re.findall(pattern,x)[0], x) if re.findall(pattern,x) else x for x in new_cols]
