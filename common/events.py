@@ -13,7 +13,9 @@ events = {
     'PFE24':['2024-10-08','2024-10-09'],
     'BFCM24':['2024-11-21','2024-12-02'],
 
-    'BigSpringSale25':['2025-03-25','2025-03-31']
+    'BigSpringSale25':['2025-03-25','2025-03-31'],
+
+    'PD25':['2024-07-08','2024-07-11'],
     }
 
 event_dates = {event: [pd.to_datetime(d).date() for d in pd.date_range(dates[0],dates[-1])] for event, dates in events.items()}
