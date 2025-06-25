@@ -19,3 +19,5 @@ events = {
     }
 
 event_dates = {event: [pd.to_datetime(d).date() for d in pd.date_range(dates[0],dates[-1])] for event, dates in events.items()}
+
+event_dates_list = [date for daterange in event_dates.values() for date in daterange]
