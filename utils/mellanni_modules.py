@@ -30,16 +30,17 @@ def week_number(date: datetime.date) -> int:
     if not isinstance(date, datetime.date):
         try:
             date = datetime.datetime.strptime(date,"%Y-%m-%d")
-        except:
-            raise BaseException("Date format not recognized")
+        except Exception as e:
+            raise BaseException(f"Date format not recognized:\n{e}")
     return date.isocalendar().week + 1 if date.weekday() == 6 else date.isocalendar().week
 
 def open_file_folder(path: str) -> None:
     try:
-        os.startfile(path)
-    except AttributeError:
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, path])
+        if hasattr(os, 'startfile'):
+            os.startfile(path)
+        else:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.call([opener, path])
     except Exception as e:
         print(f'Uncaught exception occurred: {e}')
     return None
