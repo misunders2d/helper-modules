@@ -1,12 +1,10 @@
 import os
-from typing import List, Literal
+from typing import List
 import pandas as pd
 import re
 import sys, subprocess
 from connectors import gdrive as gd
 import customtkinter
-from io import BytesIO
-import webbrowser
 import datetime
 
 from ctk_gui.ctk_windows import PopupError, PopupYesNo
@@ -37,7 +35,7 @@ def week_number(date: datetime.date) -> int:
 def open_file_folder(path: str) -> None:
     try:
         if hasattr(os, 'startfile'):
-            os.startfile(path)
+            os.startfile(path) #type: ignore
         else:
             opener = "open" if sys.platform == "darwin" else "xdg-open"
             subprocess.call([opener, path])
@@ -49,7 +47,7 @@ def export_to_excel(
         dfs: List[pd.DataFrame],
         sheet_names: List[str],
         filename: str = 'test.xlsx',
-        out_folder: Literal[str,None] = None
+        out_folder: str|None = None
         ) -> None:
     from customtkinter import filedialog
     
@@ -98,11 +96,11 @@ def get_comments():
             file['comments'] = comments
             file = file[cols]
             
-            output = customtkinter.filedialog.askdirecotry(title='Select output folder')
+            output = customtkinter.filedialog.askdirectory(title='Select output folder')
             with pd.ExcelWriter(os.path.join(output,'comments.xlsx')) as writer:
                 file.to_excel(writer,sheet_name = 'Comments', index = False)
                 format_header(file, writer, 'Comments')
-            os.startfile(output)
+            open_file_folder(output)
         except Exception as e:
             PopupError(f'Sorry, error occurred:\n{e}')
     else:

@@ -24,7 +24,7 @@ EXTRA_LARGE_150_PLUS = 'Extra large 150+'
 num_cols = ['l', 'w', 'h', 'individual weight lbs', 'sets in a box',
             'box length', 'box width', 'box depth', 'box weight lbs',
             'dim_weight','shipping_weight', 'shipping_weight, oz', 'fba_fee',
-            'removal_fee','current_storage_fee','storage_jan_sept',
+            'removal_fee','liquidation_fee','current_storage_fee','storage_jan_sept',
             'storage_oct_dec','avg_yearly_storage']
 today = pd.to_datetime('today')
 
@@ -128,7 +128,7 @@ def get_storage_fee(df):
         storage_181_270 = fees_jan_sept_181_270
         storage_271_365 = fees_jan_sept_271_365
 
-    elif this_month in range(10,13):
+    else: # this_month in range(10,13):
         storage = fees_oct_dec
         storage_181_270 = fees_oct_dec_181_270
         storage_271_365 = fees_oct_dec_271_365
@@ -341,6 +341,26 @@ def sipp_discount(df):
     df['sipp_discount'] = np.select([x[1] for x in sipp_discount],[x[0] for x in sipp_discount],np.nan)
     return df
 
+def get_liquidation_fee(df):
+    size_tier = df['size_tier']
+    weight = df['shipping_weight']
+    liquidation_fee = [
+        (0.25, (size_tier.isin([SMALL_STANDARD,LARGE_STANDARD])) & (weight.between(0,0.5, inclusive = 'right'))),
+        (0.3, (size_tier.isin([SMALL_STANDARD,LARGE_STANDARD])) & (weight.between(0.5,1, inclusive = 'right'))),
+        (0.35, (size_tier.isin([SMALL_STANDARD,LARGE_STANDARD])) & (weight.between(1,2, inclusive = 'right'))),
+        (0.4 + 0.2 * (weight-2), (size_tier.isin([SMALL_STANDARD,LARGE_STANDARD])) & (weight > 2)),
+        
+        (0.6, (~size_tier.isin([SMALL_STANDARD,LARGE_STANDARD])) & (weight.between(0,1, inclusive = 'right'))),
+        (0.7, (~size_tier.isin([SMALL_STANDARD,LARGE_STANDARD])) & (weight.between(1,2, inclusive = 'right'))),
+        (0.9, (~size_tier.isin([SMALL_STANDARD,LARGE_STANDARD])) & (weight.between(2,4, inclusive = 'right'))),
+        (1.45, (~size_tier.isin([SMALL_STANDARD,LARGE_STANDARD])) & (weight.between(4,10, inclusive = 'right'))),
+        (1.9 + 0.2 * (weight-10), (~size_tier.isin([SMALL_STANDARD,LARGE_STANDARD])) & (weight > 10)),
+        
+        
+        ]
+    df['liquidation_fee'] = np.select([x[1] for x in liquidation_fee],[x[0] for x in liquidation_fee],np.nan)
+    return df
+
 
 def export_to_excel(df):
     try:
@@ -360,7 +380,8 @@ def separate_file():
     df = get_shipping_weight(df)
     df = get_size_tier(df)
     df = get_fulfillment_fee(df)
-    df = get_removal_fee(df)    
+    df = get_removal_fee(df)
+    df = get_liquidation_fee(df)
     df = get_storage_fee(df)
     df = sipp_discount(df)
     export_to_excel(df)
@@ -374,6 +395,7 @@ def main(out = True):
     combined = get_size_tier(combined)
     combined = get_fulfillment_fee(combined)
     combined = get_removal_fee(combined)    
+    combined = get_liquidation_fee(combined)    
     combined = get_storage_fee(combined)
     for nc in num_cols:
         combined[nc] = combined[nc].astype(float, errors = 'ignore')
@@ -390,7 +412,7 @@ def main(out = True):
 
 if __name__ == '__main__':
     try:
-        mode = int(input("Select mode: 1 for Mellanni dimensions, or 2 for file upload"))
+        mode = int(input("Select mode: 1 for Mellanni dimensions, or 2 for file upload\n\n"))
         if mode==1:
             main(out = True)
         elif mode==2:

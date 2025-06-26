@@ -1,5 +1,4 @@
 from google.cloud import bigquery
-from google.cloud import storage
 import os
 import pandas as pd
 import pandas_gbq
@@ -29,14 +28,14 @@ def cgk_pricing():
 
 def pull_raw(dataset = 'auxillary_development',
                 report = 'dictionary',
-                custom_query = None) -> list:
+                custom_query = None):
     if not custom_query:
         query = f'SELECT * FROM `{dataset}.{report}` LIMIT 10'
     else:
         query = custom_query
     with gcloud_connect() as client:
         data = client.query(query).result()
-    return data
+        return data
 
 def pull_gcloud(dataset = 'auxillary_development',
                 report = 'dictionary',
@@ -56,11 +55,6 @@ def get_datasets() -> list:
 def get_tables(dataset) -> list:
     with gcloud_connect() as client:
         return [x.table_id for x in client.list_tables(dataset)]
-
-def create_storage_bucket(bucket_name):
-    storage_client = storage.Client()
-    storage_client.create_bucket(bucket_name)
-    return None
 
 def normalize_columns(df):
     import re

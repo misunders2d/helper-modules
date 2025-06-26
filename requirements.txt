@@ -1,0 +1,12 @@
+customtkinter
+gdown
+google-api-python-client
+google-cloud-bigquery
+gspread
+numpy
+openpyxl
+python-dotenv
+pandas
+pandas-gbq
+tkcalendar
+xlsxwriter
