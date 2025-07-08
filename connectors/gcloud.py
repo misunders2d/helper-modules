@@ -5,11 +5,13 @@ import pandas as pd
 import pandas_gbq
 from utils import mellanni_modules as mm
 
-def gcloud_connect():
+def get_credentials():
     key_path = 'credentials/gcloud.json'
-    # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = key_path
     credentials_from_file = service_account.Credentials.from_service_account_file(key_path)
-    client = bigquery.Client(credentials=credentials_from_file)
+    return credentials_from_file
+
+def gcloud_connect():
+    client = bigquery.Client(credentials=get_credentials())
     return client
 
 def cgk_pricing():
