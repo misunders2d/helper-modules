@@ -8,7 +8,7 @@ string_length=60
 class PopupError(ctk.CTk):
     def __init__(self, message):
         super().__init__()
-        self.geometry('300x100')
+        self.geometry('600x400')
         self.title("Error")
         self.message = '\n'.join(wrap(message, string_length))
 

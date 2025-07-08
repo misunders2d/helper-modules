@@ -2,6 +2,7 @@ import pickle
 from io import BytesIO, StringIO
 import os.path
 import pandas as pd
+from typing import Literal
 
 import gdown, gspread
 from googleapiclient.discovery import build
@@ -19,7 +20,7 @@ def gdownload(file_id):
     buf.seek(0)
     return buf
 
-def connect(scope = 'files'):
+def connect(scope:Literal['files','gspread'] = 'files'):
     creds = None
     if os.path.exists('.secrets/gdrive.pickle'):
         with open('.secrets/gdrive.pickle', 'rb') as token:
