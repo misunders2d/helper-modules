@@ -86,7 +86,6 @@ def normalize_columns(df):
     return df
 
 def push_to_cloud(df: pd.DataFrame, destination: str, if_exists: str = 'append') -> None:
-    client = gcloud_connect()
     df = normalize_columns(df)
-    _ = pandas_gbq.to_gbq(df, destination_table=destination, if_exists=if_exists)
+    _ = pandas_gbq.to_gbq(df, destination_table=destination, if_exists=if_exists, credentials=get_credentials())
     return None
