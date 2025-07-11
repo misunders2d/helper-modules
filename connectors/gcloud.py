@@ -10,8 +10,8 @@ def get_credentials():
     credentials_from_file = service_account.Credentials.from_service_account_file(key_path)
     return credentials_from_file
 
-def gcloud_connect():
-    client = bigquery.Client(credentials=get_credentials())
+def gcloud_connect(credentials=get_credentials()):
+    client = bigquery.Client(credentials=credentials, project=credentials.project_id)
     return client
 
 def cgk_pricing():
