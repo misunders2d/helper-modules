@@ -16,6 +16,8 @@ events = {
     'BigSpringSale25':['2025-03-25','2025-03-31'],
 
     'PD25':['2025-07-08','2025-07-11'],
+    'PFE25':['2025-10-07','2025-10-08'],
+    'BFCM25':['2025-11-28','2025-12-01'],
     }
 
 event_dates = {event: [pd.to_datetime(d).date() for d in pd.date_range(dates[0],dates[-1])] for event, dates in events.items()}
