@@ -3,53 +3,73 @@ from customtkinter import filedialog
 from tkcalendar import Calendar
 from datetime import datetime
 from textwrap import wrap
-string_length=60
+
+string_length = 60
+
 
 class PopupError(ctk.CTk):
     def __init__(self, message):
         super().__init__()
-        self.geometry('400x600')
+        self.geometry("400x600")
         self.title("Error")
-        self.message = '\n'.join(wrap(message, string_length))
+        self.message = "\n".join(wrap(message, string_length))
 
         self.label = ctk.CTkLabel(self, text=self.message)
         self.label.pack(pady=10)
 
-        self.button = ctk.CTkButton(self, text='Error', command=self.ok_button_click, fg_color='red', text_color='white')
+        self.button = ctk.CTkButton(
+            self,
+            text="Error",
+            command=self.ok_button_click,
+            fg_color="red",
+            text_color="white",
+        )
         self.button.pack(pady=10)
 
         self.update_idletasks()
         required_width = max(self.label.winfo_reqwidth(), self.winfo_reqwidth()) + 20
-        required_height = self.label.winfo_reqheight() + self.button.winfo_reqheight() + 40
-        self.geometry(f"{required_width}x{required_height}")
-
-        self.mainloop()
-
-    def ok_button_click(self):
-        self.destroy() 
-
-class PopupWarning(ctk.CTk):
-    def __init__(self, message):
-        super().__init__()
-        self.geometry('400x150')
-        self.title("Warning")
-        self.message = '\n'.join(wrap(message, string_length))
-
-        self.label = ctk.CTkLabel(self, text=self.message)
-        self.label.pack(pady=10)
-
-        self.button = ctk.CTkButton(self, text='OK', command=self.ok_button_click, fg_color='yellow', text_color='black')
-        self.button.pack(pady=10)
-
-        self.update_idletasks()
-        required_width = max(self.label.winfo_reqwidth(), self.winfo_reqwidth()) + 100
-        required_height = self.label.winfo_reqheight() + self.button.winfo_reqheight() + 60
+        required_height = (
+            self.label.winfo_reqheight() + self.button.winfo_reqheight() + 40
+        )
         self.geometry(f"{required_width}x{required_height}")
 
         self.mainloop()
 
     def ok_button_click(self):
         self.destroy()
+
+
+class PopupWarning(ctk.CTk):
+    def __init__(self, message):
+        super().__init__()
+        self.geometry("400x150")
+        self.title("Warning")
+        self.message = "\n".join(wrap(message, string_length))
+
+        self.label = ctk.CTkLabel(self, text=self.message)
+        self.label.pack(pady=10)
+
+        self.button = ctk.CTkButton(
+            self,
+            text="OK",
+            command=self.ok_button_click,
+            fg_color="yellow",
+            text_color="black",
+        )
+        self.button.pack(pady=10)
+
+        self.update_idletasks()
+        required_width = max(self.label.winfo_reqwidth(), self.winfo_reqwidth()) + 100
+        required_height = (
+            self.label.winfo_reqheight() + self.button.winfo_reqheight() + 60
+        )
+        self.geometry(f"{required_width}x{required_height}")
+
+        self.mainloop()
+
+    def ok_button_click(self):
+        self.destroy()
+
 
 def PopupYesNo(message="Are you sure?", title="Popup", master=None):
     if master is None:
@@ -60,12 +80,12 @@ def PopupYesNo(message="Are you sure?", title="Popup", master=None):
     dialog.title(title)
     dialog.geometry("400x250")
     dialog.resizable(True, True)
-    
+
     # Ensure the dialog is rendered before grabbing
     dialog.update()
     dialog.grab_set()
 
-    label = ctk.CTkLabel(master=dialog, text='\n'.join(wrap(message, string_length)))
+    label = ctk.CTkLabel(master=dialog, text="\n".join(wrap(message, string_length)))
     label.pack(pady=20)
 
     result = [None]
@@ -90,22 +110,25 @@ def PopupYesNo(message="Are you sure?", title="Popup", master=None):
         master.destroy()
     return result[0]
 
+
 class PopupGetText(ctk.CTk):
-    def __init__(self, title='Text prompt', width=300, height=200):
+    def __init__(self, title="Text prompt", width=300, height=200):
         super().__init__()
-        self.geometry(f'{width}x{height}')
+        self.geometry(f"{width}x{height}")
         self.title(title)
         self.result = None
 
-        self.input = ctk.CTkTextbox(self, width=width, height=height/2)
+        self.input = ctk.CTkTextbox(self, width=width, height=height / 2)
         self.input.pack(pady=10)
 
-        self.button = ctk.CTkButton(self, text='OK', command=self.ok_button_click)
+        self.button = ctk.CTkButton(self, text="OK", command=self.ok_button_click)
         self.button.pack()
 
         self.update_idletasks()
         required_width = max(self.input.winfo_reqwidth(), self.winfo_reqwidth()) + 20
-        required_height = self.input.winfo_reqheight() + self.button.winfo_reqheight() + 40
+        required_height = (
+            self.input.winfo_reqheight() + self.button.winfo_reqheight() + 40
+        )
         self.geometry(f"{required_width}x{required_height}")
 
         self.mainloop()
@@ -117,20 +140,21 @@ class PopupGetText(ctk.CTk):
     def return_value(self):
         return self.result
 
+
 class PopupGetDate:
     def __init__(self, title="Select Date"):
         self.root = ctk.CTk()
         self.root.withdraw()
-        
+
         self.popup = ctk.CTkToplevel()
         self.popup.title(title)
         self.popup.geometry("300x350")
         self.popup.resizable(False, False)
-        
+
         self.selected_date = None
-        
+
         current_date = datetime.now()
-        
+
         self.calendar = Calendar(
             self.popup,
             selectmode="day",
@@ -145,28 +169,26 @@ class PopupGetDate:
             weekendbackground="#2b2b2b",
             othermonthbackground="#2b2b2b",
             othermonthwebackground="#2b2b2b",
-            date_pattern="yyyy-mm-dd"  # Set the desired date format here
+            date_pattern="yyyy-mm-dd",  # Set the desired date format here
         )
         self.calendar.pack(pady=20, padx=20)
-        
+
         self.confirm_button = ctk.CTkButton(
-            self.popup,
-            text="Confirm",
-            command=self.confirm_date
+            self.popup, text="Confirm", command=self.confirm_date
         )
         self.confirm_button.pack(pady=10)
-        
+
         # Make window modal
         self.popup.grab_set()
-        
+
         # Center the window
         self.popup.update_idletasks()
         width = self.popup.winfo_width()
         height = self.popup.winfo_height()
         x = (self.popup.winfo_screenwidth() // 2) - (width // 2)
         y = (self.popup.winfo_screenheight() // 2) - (height // 2)
-        self.popup.geometry(f'+{x}+{y}')
-        
+        self.popup.geometry(f"+{x}+{y}")
+
         # Start the event loop and get the result
         self.popup.wait_window()
         self.root.destroy()

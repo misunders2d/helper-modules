@@ -11,57 +11,60 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-OPENAI_KEY: Final = os.getenv('KNOWLEDGE_BASE_AI_KEY')
-PINECONE_API_KEY=os.getenv('PINECONE_API_KEY')
+OPENAI_KEY: Final = os.getenv("KNOWLEDGE_BASE_AI_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 
 pc = Pinecone(api_key=PINECONE_API_KEY)
-index = pc.Index('knowledge-db')
-NAMESPACE = 'db'
+index = pc.Index("knowledge-db")
+NAMESPACE = "db"
 
-client = OpenAI(api_key = OPENAI_KEY)
+client = OpenAI(api_key=OPENAI_KEY)
+
 
 def get_embedding(text):
-    response = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=text
-    )
+    response = client.embeddings.create(model="text-embedding-3-small", input=text)
     return response.data[0].embedding
 
+
 def add_record(problem, solution):
-    text = '\n\n'.join((problem,solution))
+    text = "\n\n".join((problem, solution))
     embedding = get_embedding(text)
     vectors = [
         {
-            'id':str(uuid.uuid4()),
-            'values':embedding,
-            'metadata':{
-                'problem':problem,
-                'solution':solution,
-                'date_created':str(date.today()),
-                'date_modified':str(date.today())
-                }
-            }
-        ]
-    result = index.upsert(vectors = vectors, namespace = NAMESPACE)    
+            "id": str(uuid.uuid4()),
+            "values": embedding,
+            "metadata": {
+                "problem": problem,
+                "solution": solution,
+                "date_created": str(date.today()),
+                "date_modified": str(date.today()),
+            },
+        }
+    ]
+    result = index.upsert(vectors=vectors, namespace=NAMESPACE)
     return result
+
 
 def delete_record_from_vector(key: str):
     index.delete(ids=[key], namespace=NAMESPACE)
-    
+
+
 def modify_record_vector(key: str, text: tuple):
-    current_record = index.fetch(ids = [key], namespace = NAMESPACE)
+    current_record = index.fetch(ids=[key], namespace=NAMESPACE)
     problem, solution = text
-    embedding = get_embedding('\n\n'.join(text))
+    embedding = get_embedding("\n\n".join(text))
     index.update(
         id=key,
         values=embedding,
         set_metadata={
-            "problem": problem, "solution": solution,
-            'date_created':current_record.vectors[key]['metadata']['date_created'],
-            'date_modified':str(date.today())
-            },
-            namespace=NAMESPACE
-        )
+            "problem": problem,
+            "solution": solution,
+            "date_created": current_record.vectors[key]["metadata"]["date_created"],
+            "date_modified": str(date.today()),
+        },
+        namespace=NAMESPACE,
+    )
+
 
 def vector_search(query_str: str):
     query_emb = get_embedding(query_str)
@@ -70,12 +73,13 @@ def vector_search(query_str: str):
         vector=query_emb,
         top_k=5,
         include_values=False,
-        include_metadata=True
+        include_metadata=True,
     )
     return results
 
+
 def get_response(query, search_results):
-    pre_prompt = f'''
+    pre_prompt = f"""
                 Below is the database search for my question "{query}".
                 Please summarize and structure the search to best answer my question. If there is already a structure in the search - keep it reasonably intact.
                 Please drop irrelevant results from your summary, but make sure to keep all links, file references and tool mentions.
@@ -83,13 +87,13 @@ def get_response(query, search_results):
                 If there is not enough information in search results to answer user's question - let the user know about it and try to answer with your own knowledge.
                 Try to answer the user in the language which he used to ask the question, if possible.
                 Make sure to include the "created" date and also "modified" date if it's different from the date of creation.
-                '''
+                """
     response = client.chat.completions.create(
-        messages = [
-            {'role':'user','content':pre_prompt},
-            {'role':'user','content':search_results}
-            ],
-        model = 'gpt-4o-mini',
-        stream = True
+        messages=[
+            {"role": "user", "content": pre_prompt},
+            {"role": "user", "content": search_results},
+        ],
+        model="gpt-4o-mini",
+        stream=True,
     )
     return response
