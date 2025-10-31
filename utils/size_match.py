@@ -43,8 +43,8 @@ num_cols = [
     "storage_oct_dec",
     "avg_yearly_storage",
 ]
-# today = pd.to_datetime("today")
-today = pd.to_datetime("2026-04-30")
+today = pd.to_datetime("today")
+# today = pd.to_datetime("2026-04-30")
 
 
 def get_prices_file(spreadsheet_id='1iB1CmY_XdOVA4FvLMPeiEGEcxiVEH3Bgp4FJs1iNmQs'):
@@ -935,22 +935,25 @@ def get_fulfillment_fee(df):
         (203.46 + 0.19 * (weight - 151),(size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier3),
     ]
 
+    actual_non_peak_fees = fees_fba_non_peak_before_2026 if today < pd.to_datetime("2026-01-15") else fees_fba_non_peak
+    actual_peak_fees = fees_fba_peak_before_2026 if today < pd.to_datetime("2026-01-15") else fees_fba_peak
+
     peak_start, peak_end = (10, 15), (1, 14)
     if (
         peak_start <= (today_date.month, today_date.day)
         or (today_date.month, today_date.day) <= peak_end
     ):
-        fees = fees_fba_peak
+        fees = actual_peak_fees
     else:
-        fees = fees_fba_non_peak
+        fees = actual_non_peak_fees
     df["fba_fee"] = np.select([x[1] for x in fees], [x[0] for x in fees], np.nan)
     
     df["fba_non_peak_fee"] = np.select(
-        [x[1] for x in fees_fba_non_peak], [x[0] for x in fees_fba_non_peak], np.nan
+        [x[1] for x in actual_non_peak_fees], [x[0] for x in actual_non_peak_fees], np.nan
     )
     
     df["fba_peak_fee"] = np.select(
-        [x[1] for x in fees_fba_peak], [x[0] for x in fees_fba_peak], np.nan
+        [x[1] for x in actual_peak_fees], [x[0] for x in actual_peak_fees], np.nan
     )
     return df
 
