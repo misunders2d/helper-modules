@@ -58,7 +58,7 @@ def open_file_folder(path: str) -> None:
             os.startfile(path)  # type: ignore
         else:
             opener = "open" if sys.platform == "darwin" else "xdg-open"
-            subprocess.Popen([opener, path])
+            subprocess.Popen([opener, path], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
     except Exception as e:
         print(f"Uncaught exception occurred: {e}")
     return None
