@@ -277,3 +277,43 @@ def upload_folder(service, folder_path, parent_folder_id, drive_id):
     except HttpError as error:
         print(f"An error occurred while uploading the folder: {error}")
         return None
+
+
+def create_google_doc(title, parent_folder_id, content, service=connect()):
+    """
+    Creates a Google Doc in the specified folder with the given title and content.
+
+    Args:
+        title: The title of the new Google Doc.
+        parent_folder_id: The ID of the parent folder.
+        content: The text content to put in the document.
+        service: The Google Drive API service instance.
+
+    Returns:
+        The created file object (including ID) or None if an error occurred.
+    """
+    try:
+        file_metadata = {
+            "name": title,
+            "parents": [parent_folder_id],
+            "mimeType": "application/vnd.google-apps.document",
+        }
+        media = MediaIoBaseUpload(
+            BytesIO(content.encode("utf-8")), mimetype="text/plain", resumable=True
+        )
+
+        file = (
+            service.files()
+            .create(
+                body=file_metadata,
+                media_body=media,
+                fields="id",
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
+        print(f"Created Google Doc with ID: {file.get('id')}")
+        return file
+    except HttpError as error:
+        print(f"An error occurred while creating the Google Doc: {error}")
+        return None
