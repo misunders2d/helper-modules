@@ -48,15 +48,18 @@ today = pd.to_datetime("today")
 # today = pd.to_datetime("2026-04-30")
 
 
-def get_prices_file(spreadsheet_id='1iB1CmY_XdOVA4FvLMPeiEGEcxiVEH3Bgp4FJs1iNmQs'):
+def get_prices_file(spreadsheet_id="1iB1CmY_XdOVA4FvLMPeiEGEcxiVEH3Bgp4FJs1iNmQs"):
     file = gd.download_gspread(spreadsheet_id=spreadsheet_id)
-    file = file[['SKU','Full price','Sale price', 'Status']]
+    file = file[["SKU", "Full price", "Sale price", "Status"]]
     file.columns = [x.lower() for x in file.columns]
-    file['price'] = file['full price'].str.replace('$','')
-    file.loc[~file['status'].isin(["OK", "Stopped"]), 'price'] =  file['sale price'].str.replace('$','')
-    file['price'] = pd.to_numeric(file['price'], errors='coerce')
-    file = file.drop_duplicates('sku')
-    return file[['sku','price']]
+    file["price"] = file["full price"].str.replace("$", "")
+    file.loc[~file["status"].isin(["OK", "Stopped"]), "price"] = file[
+        "sale price"
+    ].str.replace("$", "")
+    file["price"] = pd.to_numeric(file["price"], errors="coerce")
+    file = file.drop_duplicates("sku")
+    return file[["sku", "price"]]
+
 
 def get_dims_file(
     folder_id="1zIHmbWcRRVyCTtuB9Atzam7IhAs8Ymx4", filename="DIMENSIONS.xlsx"
@@ -118,8 +121,8 @@ def combine_files(dimensions, dictionary, prices):
         ["sku", "asin", "collection", "size", "color", "actuality", "sales_channel"]
     ]
     result = pd.merge(dictionary, dimensions, how="right", on=["collection", "size"])
-    result = result.drop_duplicates('sku')
-    result = pd.merge(result, prices, how = 'left', on = 'sku', validate="1:1")
+    result = result.drop_duplicates("sku")
+    result = pd.merge(result, prices, how="left", on="sku", validate="1:1")
     return result
 
 
@@ -299,11 +302,11 @@ def get_fulfillment_fee(df):
     size_tier = df["size_tier"]
     weight = df["shipping_weight"]
     weight_oz = df["shipping_weight, oz"]
-    price = df['price']
+    price = df["price"]
 
-    price_tier1 = (price < 10)
-    price_tier2 = (price <= 50)
-    price_tier3 = (price > 50)
+    price_tier1 = price < 10
+    price_tier2 = price <= 50
+    price_tier3 = price > 50
 
     fees_before_feb2024 = [  # obsolete
         (3.22, (size_tier == SMALL_STANDARD) & (weight_oz <= 4)),
@@ -720,224 +723,882 @@ def get_fulfillment_fee(df):
         (2.43, (size_tier == SMALL_STANDARD) & (weight_oz <= 2) & price_tier1),
         (3.32, (size_tier == SMALL_STANDARD) & (weight_oz <= 2) & price_tier2),
         (3.58, (size_tier == SMALL_STANDARD) & (weight_oz <= 2) & price_tier3),
-
-        (2.49, (size_tier == SMALL_STANDARD) & (weight_oz.between(2, 4, inclusive="right")) & price_tier1),
-        (3.42, (size_tier == SMALL_STANDARD) & (weight_oz.between(2, 4, inclusive="right")) & price_tier2),
-        (3.68, (size_tier == SMALL_STANDARD) & (weight_oz.between(2, 4, inclusive="right")) & price_tier3),
-
-        (2.56, (size_tier == SMALL_STANDARD) & (weight_oz.between(4, 6, inclusive="right")) & price_tier1),
-        (3.45, (size_tier == SMALL_STANDARD) & (weight_oz.between(4, 6, inclusive="right")) & price_tier2),
-        (3.71, (size_tier == SMALL_STANDARD) & (weight_oz.between(4, 6, inclusive="right")) & price_tier3),
-
-        (2.66,(size_tier == SMALL_STANDARD)& (weight_oz.between(6, 8, inclusive="right")) & price_tier1),
-        (3.54,(size_tier == SMALL_STANDARD)& (weight_oz.between(6, 8, inclusive="right")) & price_tier2),
-        (3.80,(size_tier == SMALL_STANDARD)& (weight_oz.between(6, 8, inclusive="right")) & price_tier3),
-
-        (2.77,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier1),
-        (3.68,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier2),
-        (3.94,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier3),
-
-        (2.82,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier1),
-        (3.78,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier2),
-        (4.04,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier3),
-
-        (2.92,(size_tier == SMALL_STANDARD)& (weight_oz.between(12, 14, inclusive="right")) & price_tier1),
-        (3.91,(size_tier == SMALL_STANDARD)& (weight_oz.between(12, 14, inclusive="right")) & price_tier2),
-        (4.17,(size_tier == SMALL_STANDARD)& (weight_oz.between(12, 14, inclusive="right")) & price_tier3),
-
-        (2.95,(size_tier == SMALL_STANDARD)& (weight_oz.between(14, 16, inclusive="right")) & price_tier1),
-        (3.96,(size_tier == SMALL_STANDARD)& (weight_oz.between(14, 16, inclusive="right")) & price_tier2),
-        (4.22,(size_tier == SMALL_STANDARD)& (weight_oz.between(14, 16, inclusive="right")) & price_tier3),
-
+        (
+            2.49,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(2, 4, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.42,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(2, 4, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.68,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(2, 4, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.56,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(4, 6, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.45,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(4, 6, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.71,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(4, 6, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.66,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(6, 8, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.54,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(6, 8, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.80,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(6, 8, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.77,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(8, 10, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.68,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(8, 10, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.94,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(8, 10, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.82,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(10, 12, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.78,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(10, 12, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            4.04,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(10, 12, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.92,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(12, 14, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.91,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(12, 14, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            4.17,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(12, 14, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.95,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(14, 16, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.96,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(14, 16, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            4.22,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(14, 16, inclusive="right"))
+            & price_tier3,
+        ),
         (2.91, (size_tier == LARGE_STANDARD) & (weight_oz <= 4) & price_tier1),
         (3.73, (size_tier == LARGE_STANDARD) & (weight_oz <= 4) & price_tier2),
         (3.99, (size_tier == LARGE_STANDARD) & (weight_oz <= 4) & price_tier3),
-
-        (3.13,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier1),
-        (3.95,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier2),
-        (4.21,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier3),
-
-        (3.38,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier1),
-        (4.20,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier2),
-        (4.46,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier3),
-
-        (3.78,(size_tier == LARGE_STANDARD)& (weight_oz.between(12, 16, inclusive="right")) & price_tier1),
-        (4.60,(size_tier == LARGE_STANDARD)& (weight_oz.between(12, 16, inclusive="right")) & price_tier2),
-        (4.86,(size_tier == LARGE_STANDARD)& (weight_oz.between(12, 16, inclusive="right")) & price_tier3),
-
-        (4.22,(size_tier == LARGE_STANDARD)& (weight.between(1, 1.25, inclusive="right")) & price_tier1),
-        (5.04,(size_tier == LARGE_STANDARD)& (weight.between(1, 1.25, inclusive="right")) & price_tier2),
-        (5.30,(size_tier == LARGE_STANDARD)& (weight.between(1, 1.25, inclusive="right")) & price_tier3),
-
-        (4.60,(size_tier == LARGE_STANDARD)& (weight.between(1.25, 1.5, inclusive="right")) & price_tier1),
-        (5.42,(size_tier == LARGE_STANDARD)& (weight.between(1.25, 1.5, inclusive="right")) & price_tier2),
-        (5.68,(size_tier == LARGE_STANDARD)& (weight.between(1.25, 1.5, inclusive="right")) & price_tier3),
-
-        (4.75,(size_tier == LARGE_STANDARD)& (weight.between(1.5, 1.75, inclusive="right")) & price_tier1),
-        (5.57,(size_tier == LARGE_STANDARD)& (weight.between(1.5, 1.75, inclusive="right")) & price_tier2),
-        (5.83,(size_tier == LARGE_STANDARD)& (weight.between(1.5, 1.75, inclusive="right")) & price_tier3),
-
-        (5.00,(size_tier == LARGE_STANDARD)& (weight.between(1.75, 2, inclusive="right")) & price_tier1),
-        (5.82,(size_tier == LARGE_STANDARD)& (weight.between(1.75, 2, inclusive="right")) & price_tier2),
-        (6.08,(size_tier == LARGE_STANDARD)& (weight.between(1.75, 2, inclusive="right")) & price_tier3),
-
-        (5.10,(size_tier == LARGE_STANDARD)& (weight.between(2, 2.25, inclusive="right")) & price_tier1),
-        (5.92,(size_tier == LARGE_STANDARD)& (weight.between(2, 2.25, inclusive="right")) & price_tier2),
-        (6.18,(size_tier == LARGE_STANDARD)& (weight.between(2, 2.25, inclusive="right")) & price_tier3),
-
-        (5.28,(size_tier == LARGE_STANDARD)& (weight.between(2.25, 2.5, inclusive="right")) & price_tier1),
-        (6.10,(size_tier == LARGE_STANDARD)& (weight.between(2.25, 2.5, inclusive="right")) & price_tier2),
-        (6.36,(size_tier == LARGE_STANDARD)& (weight.between(2.25, 2.5, inclusive="right")) & price_tier3),
-
-        (5.44,(size_tier == LARGE_STANDARD)& (weight.between(2.5, 2.75, inclusive="right")) & price_tier1),
-        (6.26,(size_tier == LARGE_STANDARD)& (weight.between(2.5, 2.75, inclusive="right")) & price_tier2),
-        (6.52,(size_tier == LARGE_STANDARD)& (weight.between(2.5, 2.75, inclusive="right")) & price_tier3),
-
-        (5.85,(size_tier == LARGE_STANDARD)& (weight.between(2.75, 3, inclusive="right")) & price_tier1),
-        (6.67,(size_tier == LARGE_STANDARD)& (weight.between(2.75, 3, inclusive="right")) & price_tier2),
-        (6.93,(size_tier == LARGE_STANDARD)& (weight.between(2.75, 3, inclusive="right")) & price_tier3),
-
-        (6.15 + 0.08 * ((weight - 3) * 4),(size_tier == LARGE_STANDARD) & (weight.between(3, 20, inclusive="right")) & price_tier1),
-        (6.97 + 0.08 * ((weight - 3) * 4),(size_tier == LARGE_STANDARD) & (weight.between(3, 20, inclusive="right")) & price_tier2),
-        (7.23 + 0.08 * ((weight - 3) * 4),(size_tier == LARGE_STANDARD) & (weight.between(3, 20, inclusive="right")) & price_tier3),
-
-        (6.78 + 0.38 * (weight - 1), (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier1),
-        (7.55 + 0.38 * (weight - 1), (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier2),
-        (7.55 + 0.38 * (weight - 1), (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier3),
-
-        (8.58 + 0.38 * (weight - 1), (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier1),
-        (9.36 + 0.38 * (weight - 1), (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier2),
-        (9.35 + 0.38 * (weight - 1), (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier3),
-
-        (25.56 + 0.38 * (weight - 1), (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier1),
-        (26.33 + 0.38 * (weight - 1), (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier2),
-        (26.33 + 0.38 * (weight - 1), (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier3),
-
-        (36.55 + 0.75 * (weight - 51),(size_tier == EXTRA_LARGE_50_70)& (weight.between(50, 70, inclusive="right")) & price_tier1),
-        (37.32 + 0.75 * (weight - 51),(size_tier == EXTRA_LARGE_50_70)& (weight.between(50, 70, inclusive="right")) & price_tier2),
-        (37.32 + 0.75 * (weight - 51),(size_tier == EXTRA_LARGE_50_70)& (weight.between(50, 70, inclusive="right")) & price_tier3),
-
-        (50.55 + 0.75 * (weight - 71),(size_tier == EXTRA_LARGE_70_150)& (weight.between(70, 150, inclusive="right")) & price_tier1),
-        (51.32 + 0.75 * (weight - 71),(size_tier == EXTRA_LARGE_70_150)& (weight.between(70, 150, inclusive="right")) & price_tier2),
-        (51.32 + 0.75 * (weight - 71),(size_tier == EXTRA_LARGE_70_150)& (weight.between(70, 150, inclusive="right")) & price_tier3),
-
-        (194.18 + 0.19 * (weight - 151),(size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier1),
-        (194.95 + 0.19 * (weight - 151),(size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier2),
-        (194.95 + 0.19 * (weight - 151),(size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier3),
+        (
+            3.13,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(4, 8, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.95,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(4, 8, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            4.21,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(4, 8, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            3.38,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(8, 12, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            4.20,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(8, 12, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            4.46,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(8, 12, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            3.78,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(12, 16, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            4.60,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(12, 16, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            4.86,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(12, 16, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            4.22,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1, 1.25, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            5.04,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1, 1.25, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            5.30,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1, 1.25, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            4.60,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.25, 1.5, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            5.42,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.25, 1.5, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            5.68,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.25, 1.5, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            4.75,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.5, 1.75, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            5.57,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.5, 1.75, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            5.83,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.5, 1.75, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.00,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.75, 2, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            5.82,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.75, 2, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            6.08,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.75, 2, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.10,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2, 2.25, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            5.92,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2, 2.25, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            6.18,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2, 2.25, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.28,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.25, 2.5, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            6.10,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.25, 2.5, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            6.36,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.25, 2.5, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.44,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.5, 2.75, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            6.26,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.5, 2.75, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            6.52,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.5, 2.75, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.85,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.75, 3, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            6.67,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.75, 3, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            6.93,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.75, 3, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            6.15 + 0.08 * ((weight - 3) * 4),
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(3, 20, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            6.97 + 0.08 * ((weight - 3) * 4),
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(3, 20, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            7.23 + 0.08 * ((weight - 3) * 4),
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(3, 20, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            6.78 + 0.38 * (weight - 1),
+            (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier1,
+        ),
+        (
+            7.55 + 0.38 * (weight - 1),
+            (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier2,
+        ),
+        (
+            7.55 + 0.38 * (weight - 1),
+            (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier3,
+        ),
+        (
+            8.58 + 0.38 * (weight - 1),
+            (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier1,
+        ),
+        (
+            9.36 + 0.38 * (weight - 1),
+            (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier2,
+        ),
+        (
+            9.35 + 0.38 * (weight - 1),
+            (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier3,
+        ),
+        (
+            25.56 + 0.38 * (weight - 1),
+            (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier1,
+        ),
+        (
+            26.33 + 0.38 * (weight - 1),
+            (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier2,
+        ),
+        (
+            26.33 + 0.38 * (weight - 1),
+            (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier3,
+        ),
+        (
+            36.55 + 0.75 * (weight - 51),
+            (size_tier == EXTRA_LARGE_50_70)
+            & (weight.between(50, 70, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            37.32 + 0.75 * (weight - 51),
+            (size_tier == EXTRA_LARGE_50_70)
+            & (weight.between(50, 70, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            37.32 + 0.75 * (weight - 51),
+            (size_tier == EXTRA_LARGE_50_70)
+            & (weight.between(50, 70, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            50.55 + 0.75 * (weight - 71),
+            (size_tier == EXTRA_LARGE_70_150)
+            & (weight.between(70, 150, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            51.32 + 0.75 * (weight - 71),
+            (size_tier == EXTRA_LARGE_70_150)
+            & (weight.between(70, 150, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            51.32 + 0.75 * (weight - 71),
+            (size_tier == EXTRA_LARGE_70_150)
+            & (weight.between(70, 150, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            194.18 + 0.19 * (weight - 151),
+            (size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier1,
+        ),
+        (
+            194.95 + 0.19 * (weight - 151),
+            (size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier2,
+        ),
+        (
+            194.95 + 0.19 * (weight - 151),
+            (size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier3,
+        ),
     ]
 
     fees_fba_peak = [
         (2.48, (size_tier == SMALL_STANDARD) & (weight_oz <= 2) & price_tier1),
         (3.25, (size_tier == SMALL_STANDARD) & (weight_oz <= 2) & price_tier2),
         (3.25, (size_tier == SMALL_STANDARD) & (weight_oz <= 2) & price_tier3),
-
-        (2.57, (size_tier == SMALL_STANDARD) & (weight_oz.between(2, 4, inclusive="right")) & price_tier1),
-        (3.34, (size_tier == SMALL_STANDARD) & (weight_oz.between(2, 4, inclusive="right")) & price_tier2),
-        (3.34, (size_tier == SMALL_STANDARD) & (weight_oz.between(2, 4, inclusive="right")) & price_tier3),
-
-        (2.67, (size_tier == SMALL_STANDARD) & (weight_oz.between(4, 6, inclusive="right")) & price_tier1),
-        (3.44, (size_tier == SMALL_STANDARD) & (weight_oz.between(4, 6, inclusive="right")) & price_tier2),
-        (3.44, (size_tier == SMALL_STANDARD) & (weight_oz.between(4, 6, inclusive="right")) & price_tier3),
-
-        (2.76,(size_tier == SMALL_STANDARD)& (weight_oz.between(6, 8, inclusive="right")) & price_tier1),
-        (3.53,(size_tier == SMALL_STANDARD)& (weight_oz.between(6, 8, inclusive="right")) & price_tier2),
-        (3.53,(size_tier == SMALL_STANDARD)& (weight_oz.between(6, 8, inclusive="right")) & price_tier3),
-
-        (2.87,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier1),
-        (3.64,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier2),
-        (3.64,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier3),
-
-        (2.97,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier1),
-        (3.74,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier2),
-        (3.74,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier3),
-
-        (3.05,(size_tier == SMALL_STANDARD)& (weight_oz.between(12, 14, inclusive="right")) & price_tier1),
-        (3.82,(size_tier == SMALL_STANDARD)& (weight_oz.between(12, 14, inclusive="right")) & price_tier2),
-        (3.82,(size_tier == SMALL_STANDARD)& (weight_oz.between(12, 14, inclusive="right")) & price_tier3),
-
-        (3.10,(size_tier == SMALL_STANDARD)& (weight_oz.between(14, 16, inclusive="right")) & price_tier1),
-        (3.87,(size_tier == SMALL_STANDARD)& (weight_oz.between(14, 16, inclusive="right")) & price_tier2),
-        (3.87,(size_tier == SMALL_STANDARD)& (weight_oz.between(14, 16, inclusive="right")) & price_tier3),
-
+        (
+            2.57,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(2, 4, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.34,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(2, 4, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.34,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(2, 4, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.67,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(4, 6, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.44,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(4, 6, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.44,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(4, 6, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.76,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(6, 8, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.53,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(6, 8, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.53,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(6, 8, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.87,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(8, 10, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.64,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(8, 10, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.64,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(8, 10, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            2.97,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(10, 12, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.74,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(10, 12, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.74,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(10, 12, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            3.05,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(12, 14, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.82,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(12, 14, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.82,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(12, 14, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            3.10,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(14, 16, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            3.87,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(14, 16, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            3.87,
+            (size_tier == SMALL_STANDARD)
+            & (weight_oz.between(14, 16, inclusive="right"))
+            & price_tier3,
+        ),
         (3.15, (size_tier == LARGE_STANDARD) & (weight_oz <= 4) & price_tier1),
         (3.92, (size_tier == LARGE_STANDARD) & (weight_oz <= 4) & price_tier2),
         (3.92, (size_tier == LARGE_STANDARD) & (weight_oz <= 4) & price_tier3),
-
-        (3.39,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier1),
-        (4.16,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier2),
-        (4.16,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier3),
-
-        (3.66,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier1),
-        (4.43,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier2),
-        (4.43,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier3),
-
-        (4.07,(size_tier == LARGE_STANDARD)& (weight_oz.between(12, 16, inclusive="right")) & price_tier1),
-        (4.84,(size_tier == LARGE_STANDARD)& (weight_oz.between(12, 16, inclusive="right")) & price_tier2),
-        (4.84,(size_tier == LARGE_STANDARD)& (weight_oz.between(12, 16, inclusive="right")) & price_tier3),
-
-        (4.52,(size_tier == LARGE_STANDARD)& (weight.between(1, 1.25, inclusive="right")) & price_tier1),
-        (5.29,(size_tier == LARGE_STANDARD)& (weight.between(1, 1.25, inclusive="right")) & price_tier2),
-        (5.29,(size_tier == LARGE_STANDARD)& (weight.between(1, 1.25, inclusive="right")) & price_tier3),
-
-        (4.91,(size_tier == LARGE_STANDARD)& (weight.between(1.25, 1.5, inclusive="right")) & price_tier1),
-        (5.68,(size_tier == LARGE_STANDARD)& (weight.between(1.25, 1.5, inclusive="right")) & price_tier2),
-        (5.68,(size_tier == LARGE_STANDARD)& (weight.between(1.25, 1.5, inclusive="right")) & price_tier3),
-
-        (5.07,(size_tier == LARGE_STANDARD)& (weight.between(1.5, 1.75, inclusive="right")) & price_tier1),
-        (5.84,(size_tier == LARGE_STANDARD)& (weight.between(1.5, 1.75, inclusive="right")) & price_tier2),
-        (5.84,(size_tier == LARGE_STANDARD)& (weight.between(1.5, 1.75, inclusive="right")) & price_tier3),
-
-        (5.33,(size_tier == LARGE_STANDARD)& (weight.between(1.75, 2, inclusive="right")) & price_tier1),
-        (6.10,(size_tier == LARGE_STANDARD)& (weight.between(1.75, 2, inclusive="right")) & price_tier2),
-        (6.10,(size_tier == LARGE_STANDARD)& (weight.between(1.75, 2, inclusive="right")) & price_tier3),
-
-        (5.47,(size_tier == LARGE_STANDARD)& (weight.between(2, 2.25, inclusive="right")) & price_tier1),
-        (6.24,(size_tier == LARGE_STANDARD)& (weight.between(2, 2.25, inclusive="right")) & price_tier2),
-        (6.24,(size_tier == LARGE_STANDARD)& (weight.between(2, 2.25, inclusive="right")) & price_tier3),
-
-        (5.67,(size_tier == LARGE_STANDARD)& (weight.between(2.25, 2.5, inclusive="right")) & price_tier1),
-        (6.44,(size_tier == LARGE_STANDARD)& (weight.between(2.25, 2.5, inclusive="right")) & price_tier2),
-        (6.44,(size_tier == LARGE_STANDARD)& (weight.between(2.25, 2.5, inclusive="right")) & price_tier3),
-
-        (5.84,(size_tier == LARGE_STANDARD)& (weight.between(2.5, 2.75, inclusive="right")) & price_tier1),
-        (6.61,(size_tier == LARGE_STANDARD)& (weight.between(2.5, 2.75, inclusive="right")) & price_tier2),
-        (6.61,(size_tier == LARGE_STANDARD)& (weight.between(2.5, 2.75, inclusive="right")) & price_tier3),
-
-        (6.26,(size_tier == LARGE_STANDARD)& (weight.between(2.75, 3, inclusive="right")) & price_tier1),
-        (7.03,(size_tier == LARGE_STANDARD)& (weight.between(2.75, 3, inclusive="right")) & price_tier2),
-        (7.03,(size_tier == LARGE_STANDARD)& (weight.between(2.75, 3, inclusive="right")) & price_tier3),
-
-        (6.69 + 0.08 * ((weight - 3) * 4),(size_tier == LARGE_STANDARD) & (weight.between(3, 20, inclusive="right")) & price_tier1),
-        (7.46 + 0.08 * ((weight - 3) * 4),(size_tier == LARGE_STANDARD) & (weight.between(3, 20, inclusive="right")) & price_tier2),
-        (7.46 + 0.08 * ((weight - 3) * 4),(size_tier == LARGE_STANDARD) & (weight.between(3, 20, inclusive="right")) & price_tier3),
-
-        (9.88 + 0.38 * (weight - 1), (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier1),
-        (10.65 + 0.38 * (weight - 1), (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier2),
-        (10.65 + 0.38 * (weight - 1), (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier3),
-
-        (9.88 + 0.38 * (weight - 1), (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier1),
-        (10.65 + 0.38 * (weight - 1), (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier2),
-        (10.65 + 0.38 * (weight - 1), (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier3),
-
-        (28.29 + 0.38 * (weight - 1), (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier1),
-        (29.06 + 0.38 * (weight - 1), (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier2),
-        (29.06 + 0.38 * (weight - 1), (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier3),
-
-        (42.16 + 0.75 * (weight - 51),(size_tier == EXTRA_LARGE_50_70)& (weight.between(50, 70, inclusive="right")) & price_tier1),
-        (42.93 + 0.75 * (weight - 51),(size_tier == EXTRA_LARGE_50_70)& (weight.between(50, 70, inclusive="right")) & price_tier2),
-        (42.93 + 0.75 * (weight - 51),(size_tier == EXTRA_LARGE_50_70)& (weight.between(50, 70, inclusive="right")) & price_tier3),
-
-        (58.46 + 0.75 * (weight - 71),(size_tier == EXTRA_LARGE_70_150)& (weight.between(70, 150, inclusive="right")) & price_tier1),
-        (59.23 + 0.75 * (weight - 71),(size_tier == EXTRA_LARGE_70_150)& (weight.between(70, 150, inclusive="right")) & price_tier2),
-        (59.23 + 0.75 * (weight - 71),(size_tier == EXTRA_LARGE_70_150)& (weight.between(70, 150, inclusive="right")) & price_tier3),
-
-        (202.69 + 0.19 * (weight - 151),(size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier1),
-        (203.46 + 0.19 * (weight - 151),(size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier2),
-        (203.46 + 0.19 * (weight - 151),(size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier3),
+        (
+            3.39,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(4, 8, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            4.16,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(4, 8, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            4.16,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(4, 8, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            3.66,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(8, 12, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            4.43,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(8, 12, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            4.43,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(8, 12, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            4.07,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(12, 16, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            4.84,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(12, 16, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            4.84,
+            (size_tier == LARGE_STANDARD)
+            & (weight_oz.between(12, 16, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            4.52,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1, 1.25, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            5.29,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1, 1.25, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            5.29,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1, 1.25, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            4.91,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.25, 1.5, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            5.68,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.25, 1.5, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            5.68,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.25, 1.5, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.07,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.5, 1.75, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            5.84,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.5, 1.75, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            5.84,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.5, 1.75, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.33,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.75, 2, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            6.10,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.75, 2, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            6.10,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(1.75, 2, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.47,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2, 2.25, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            6.24,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2, 2.25, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            6.24,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2, 2.25, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.67,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.25, 2.5, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            6.44,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.25, 2.5, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            6.44,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.25, 2.5, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            5.84,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.5, 2.75, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            6.61,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.5, 2.75, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            6.61,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.5, 2.75, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            6.26,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.75, 3, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            7.03,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.75, 3, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            7.03,
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(2.75, 3, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            6.69 + 0.08 * ((weight - 3) * 4),
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(3, 20, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            7.46 + 0.08 * ((weight - 3) * 4),
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(3, 20, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            7.46 + 0.08 * ((weight - 3) * 4),
+            (size_tier == LARGE_STANDARD)
+            & (weight.between(3, 20, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            9.88 + 0.38 * (weight - 1),
+            (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier1,
+        ),
+        (
+            10.65 + 0.38 * (weight - 1),
+            (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier2,
+        ),
+        (
+            10.65 + 0.38 * (weight - 1),
+            (size_tier == SMALL_BULKY) & (weight <= 50) & price_tier3,
+        ),
+        (
+            9.88 + 0.38 * (weight - 1),
+            (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier1,
+        ),
+        (
+            10.65 + 0.38 * (weight - 1),
+            (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier2,
+        ),
+        (
+            10.65 + 0.38 * (weight - 1),
+            (size_tier == LARGE_BULKY) & (weight <= 50) & price_tier3,
+        ),
+        (
+            28.29 + 0.38 * (weight - 1),
+            (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier1,
+        ),
+        (
+            29.06 + 0.38 * (weight - 1),
+            (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier2,
+        ),
+        (
+            29.06 + 0.38 * (weight - 1),
+            (size_tier == EXTRA_LARGE_0_50) & (weight <= 50) & price_tier3,
+        ),
+        (
+            42.16 + 0.75 * (weight - 51),
+            (size_tier == EXTRA_LARGE_50_70)
+            & (weight.between(50, 70, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            42.93 + 0.75 * (weight - 51),
+            (size_tier == EXTRA_LARGE_50_70)
+            & (weight.between(50, 70, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            42.93 + 0.75 * (weight - 51),
+            (size_tier == EXTRA_LARGE_50_70)
+            & (weight.between(50, 70, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            58.46 + 0.75 * (weight - 71),
+            (size_tier == EXTRA_LARGE_70_150)
+            & (weight.between(70, 150, inclusive="right"))
+            & price_tier1,
+        ),
+        (
+            59.23 + 0.75 * (weight - 71),
+            (size_tier == EXTRA_LARGE_70_150)
+            & (weight.between(70, 150, inclusive="right"))
+            & price_tier2,
+        ),
+        (
+            59.23 + 0.75 * (weight - 71),
+            (size_tier == EXTRA_LARGE_70_150)
+            & (weight.between(70, 150, inclusive="right"))
+            & price_tier3,
+        ),
+        (
+            202.69 + 0.19 * (weight - 151),
+            (size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier1,
+        ),
+        (
+            203.46 + 0.19 * (weight - 151),
+            (size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier2,
+        ),
+        (
+            203.46 + 0.19 * (weight - 151),
+            (size_tier == EXTRA_LARGE_150_PLUS) & (weight > 150) & price_tier3,
+        ),
     ]
 
-    actual_non_peak_fees = fees_fba_non_peak_before_2026 if today < pd.to_datetime("2026-01-15") else fees_fba_non_peak
-    actual_peak_fees = fees_fba_peak_before_2026 if today < pd.to_datetime("2026-01-15") else fees_fba_peak
+    actual_non_peak_fees = (
+        fees_fba_non_peak_before_2026
+        if today < pd.to_datetime("2026-01-15")
+        else fees_fba_non_peak
+    )
+    actual_peak_fees = (
+        fees_fba_peak_before_2026
+        if today < pd.to_datetime("2026-01-15")
+        else fees_fba_peak
+    )
 
     peak_start, peak_end = (10, 15), (1, 14)
     if (
@@ -950,7 +1611,9 @@ def get_fulfillment_fee(df):
     df["fba_fee"] = np.select([x[1] for x in fees], [x[0] for x in fees], np.nan)
 
     df["fba_non_peak_fee"] = np.select(
-        [x[1] for x in actual_non_peak_fees], [x[0] for x in actual_non_peak_fees], np.nan
+        [x[1] for x in actual_non_peak_fees],
+        [x[0] for x in actual_non_peak_fees],
+        np.nan,
     )
 
     df["fba_peak_fee"] = np.select(
