@@ -6,6 +6,7 @@ from connectors import gdrive as gd
 from common import user_folder, excluded_collections
 import pandas as pd
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 from ctk_gui.ctk_windows import PopupError, filedialog
 
 drive_id = "0AMdx9NlXacARUk9PVA"
@@ -735,7 +736,7 @@ def get_fulfillment_fee(df):
         (2.77,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier1),
         (3.68,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier2),
         (3.94,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier3),
-        
+
         (2.82,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier1),
         (3.78,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier2),
         (4.04,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier3),
@@ -755,7 +756,7 @@ def get_fulfillment_fee(df):
         (3.13,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier1),
         (3.95,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier2),
         (4.21,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier3),
-        
+
         (3.38,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier1),
         (4.20,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier2),
         (4.46,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier3),
@@ -845,7 +846,7 @@ def get_fulfillment_fee(df):
         (2.87,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier1),
         (3.64,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier2),
         (3.64,(size_tier == SMALL_STANDARD)& (weight_oz.between(8, 10, inclusive="right")) & price_tier3),
-        
+
         (2.97,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier1),
         (3.74,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier2),
         (3.74,(size_tier == SMALL_STANDARD)& (weight_oz.between(10, 12, inclusive="right")) & price_tier3),
@@ -865,7 +866,7 @@ def get_fulfillment_fee(df):
         (3.39,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier1),
         (4.16,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier2),
         (4.16,(size_tier == LARGE_STANDARD)& (weight_oz.between(4, 8, inclusive="right")) & price_tier3),
-        
+
         (3.66,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier1),
         (4.43,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier2),
         (4.43,(size_tier == LARGE_STANDARD)& (weight_oz.between(8, 12, inclusive="right")) & price_tier3),
@@ -947,11 +948,11 @@ def get_fulfillment_fee(df):
     else:
         fees = actual_non_peak_fees
     df["fba_fee"] = np.select([x[1] for x in fees], [x[0] for x in fees], np.nan)
-    
+
     df["fba_non_peak_fee"] = np.select(
         [x[1] for x in actual_non_peak_fees], [x[0] for x in actual_non_peak_fees], np.nan
     )
-    
+
     df["fba_peak_fee"] = np.select(
         [x[1] for x in actual_peak_fees], [x[0] for x in actual_peak_fees], np.nan
     )
@@ -1225,9 +1226,17 @@ def separate_file():
 
 
 def main(out=True):
-    dimensions = get_dims_file()
-    dictionary = get_dictionary()
-    prices = get_prices_file()
+    executor = ThreadPoolExecutor()
+    dimensions_future = executor.submit(get_dims_file)
+    dictionary_future = executor.submit(get_dictionary)
+    prices_future = executor.submit(get_prices_file)
+
+    dimensions = dimensions_future.result()
+    dictionary = dictionary_future.result()
+    prices = prices_future.result()
+    # dimensions = get_dims_file()
+    # dictionary = get_dictionary()
+    # prices = get_prices_file()
     combined = combine_files(dimensions.copy(), dictionary.copy(), prices.copy())
     combined = get_shipping_weight(combined)
     combined = get_size_tier(combined)
