@@ -1228,12 +1228,12 @@ def separate_file():
 def main(out=True):
     executor = ThreadPoolExecutor()
     dimensions_future = executor.submit(get_dims_file)
-    dictionary_future = executor.submit(get_dictionary)
     prices_future = executor.submit(get_prices_file)
 
     dimensions = dimensions_future.result()
-    dictionary = dictionary_future.result()
     prices = prices_future.result()
+    dictionary_future = executor.submit(get_dictionary)
+    dictionary = dictionary_future.result()
     # dimensions = get_dims_file()
     # dictionary = get_dictionary()
     # prices = get_prices_file()
