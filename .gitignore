@@ -173,3 +173,9 @@ cython_debug/
 
 credentials/
 .secrets/
+
+.python-version
+main.py
+pyproject.toml
+README.md
+uv.lock

@@ -1,4 +1,6 @@
 import pandas as pd
+from dateutil.relativedelta import relativedelta
+from dateutil import parser
 
 events = {
     "PD22": ["2022-07-12", "2022-07-13"],
@@ -21,4 +23,16 @@ event_dates = {
     for event, dates in events.items()
 }
 
+event_dates_margins = {
+    event: [
+        d.date()
+        for d in pd.date_range(
+            parser.parse(dates[0]) - relativedelta(days=10),
+            parser.parse(dates[-1]) + relativedelta(days=5)
+        )
+    ]
+    for event, dates in events.items()
+}
+
 event_dates_list = [date for daterange in event_dates.values() for date in daterange]
+event_dates_margins_list = [date for daterange in event_dates_margins.values() for date in daterange]
