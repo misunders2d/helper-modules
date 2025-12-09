@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from ctk_gui.ctk_windows import PopupError, filedialog
 
 drive_id = "0AMdx9NlXacARUk9PVA"
+MATRIX_FILE_ID = "1hnBbUMWQh4qgqowVIcgRll4zFvxAwc0Q"  # Master Product Library - https://docs.google.com/spreadsheets/d/1hnBbUMWQh4qgqowVIcgRll4zFvxAwc0Q/edit?usp=sharing&ouid=104139340250971501691&rtpof=true&sd=true
 
 # Product size tiers page: https://sellercentral.amazon.com/help/hub/reference/GG5KW835AHDJCH8W
 # Storage fee page: https://sellercentral.amazon.com/help/hub/reference/G3EDYEF6KUCFQTNM
@@ -1886,6 +1887,48 @@ def separate_file():
     df = get_storage_fee(df)
     df = sipp_discount(df)
     export_to_excel(df)
+
+
+def pull_matrix_file(file_id=MATRIX_FILE_ID):
+    """
+    Pull the Master Product Library file from GDrive
+    """
+    try:
+        matrix_file_obj = gd.download_file(file_id=file_id)
+        matrix_file = pd.ExcelFile(matrix_file_obj)
+        matrix_df = pd.read_excel(matrix_file, sheet_name="Mellanni Catalog")
+        matrix_df_columns = matrix_df.columns.tolist()
+        individual_dimensions_index = matrix_df_columns.index("Individual Dimensions (in)")
+        individual_weight_index = matrix_df_columns.index("Individual Weight Lbs")
+        sets_in_a_box_index = matrix_df_columns.index("Sets in a box")
+        box_dimensions_index = matrix_df_columns.index("Box Dimensions (in)")
+        box_weight_index = matrix_df_columns.index("Box Weight Lbs")
+
+        matrix_df = pd.read_excel(matrix_file, sheet_name="Mellanni Catalog", skiprows=1)
+        sku_index = matrix_df.columns.tolist().index("sku")
+
+        columns_to_use = {
+            sku_index: "sku",
+            individual_dimensions_index: "target_l",
+            individual_dimensions_index + 1: "target_w",
+            individual_dimensions_index + 2: "target_h",
+            individual_weight_index: "target_weight",
+            sets_in_a_box_index: "target_qty_per_box",
+            box_dimensions_index: "target_box_l",
+            box_dimensions_index + 1: "target_box_w",
+            box_dimensions_index + 2: "target_box_h",
+            box_weight_index: "target_box_weight",
+        }
+
+        column_mapping = {
+            matrix_df.columns.tolist()[i]: new_name
+            for i, new_name in columns_to_use.items()
+        }
+        matrix_df = matrix_df.rename(columns=column_mapping)
+        matrix_df = matrix_df[columns_to_use.values()]
+        return matrix_df
+    except Exception as e:
+        raise BaseException(f"Error while pulling Matrix file: {str(e)}")
 
 
 def main(out=True):
