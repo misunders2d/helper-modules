@@ -87,9 +87,10 @@ def get_dims_file(
 def get_dictionary(
     folder_id="1zIHmbWcRRVyCTtuB9Atzam7IhAs8Ymx4", filename="Dictionary.xlsx"
 ):
-    file = pd.read_excel(
-        gd.download_file(gd.find_file_id(folder_id, drive_id, filename))
-    )
+    # file = pd.read_excel(
+    #     gd.download_file(gd.find_file_id(folder_id, drive_id, filename))
+    # )
+    file = gd.download_gspread(spreadsheet_id="1Y4XhSBCXqmEVHHOnugEpzZZ3NQ5ZRGOlp-AsTE0KmRE", sheet_id="449289593")
     file = file[
         [
             "SKU",
