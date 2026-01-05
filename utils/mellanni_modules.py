@@ -1,5 +1,16 @@
 import os
-from typing import List
+from typing import List, Literal, Optional, Union, Dict, Any
+
+FormattingType = Literal[
+    "2-color",
+    "3-color",
+    "highlight",
+    "number",
+    "medium number",
+    "decimal",
+    "currency",
+    "percent",
+]
 import pandas as pd
 import re
 import sys, subprocess
@@ -71,7 +82,37 @@ def export_to_excel(
     sheet_names: List[str],
     filename: str = "test.xlsx",
     out_folder: str | None = None,
+    column_formats: Dict[str, Union[FormattingType, Dict[str, Any]]] | None = None,
 ) -> None:
+    """
+    Exports dataframes to multiple sheets in an Excel file with optional column formatting.
+
+    Args:
+        dfs: List of pandas DataFrames to export.
+        sheet_names: List of sheet names corresponding to the DataFrames.
+        filename: Name of the output file.
+        out_folder: Directory to save the file. If None, a dialog will open.
+        column_formats: A dictionary mapping column names to formatting configurations.
+
+    Example Usage:
+        column_formats = {
+            "Total Sales": "currency",
+            "Growth %": "percent",
+            "Margin": {
+                "type": "3-color",
+                "min_color": "#F8696B", # Red
+                "mid_color": "#FFEB84", # Yellow
+                "max_color": "#63BE7B", # Green
+                "mid_value": 0
+            },
+            "Stock Level": {
+                "type": "2-color",
+                "min_color": "#FFFFFF",
+                "max_color": "#00FF00"
+            }
+        }
+        export_to_excel([df], ["Report"], "sales.xlsx", column_formats=column_formats)
+    """
     from customtkinter import filedialog
 
     if not out_folder:
@@ -85,6 +126,8 @@ def export_to_excel(
                 if len(df) > 0:
                     df.to_excel(excel_writer=writer, sheet_name=sheet_name, index=False)
                     format_header(df, writer, sheet_name)
+                    if column_formats:
+                        apply_formatting(df, writer, sheet_name, column_formats)
     except PermissionError:
         print(f"{filename} is open, please close the file first")
         export_to_excel(dfs, sheet_names, filename, out_folder)
@@ -193,6 +236,107 @@ def format_columns(df, writer, sheet, col_num):
     for c in col_num:
         width = max(df.iloc[:, c].astype(str).map(len).max(), len(df.iloc[:, c].name))
         worksheet.set_column(c, c, width)
+    return None
+
+
+def apply_formatting(
+    df: pd.DataFrame,
+    writer: pd.ExcelWriter,
+    sheet: str,
+    column_formats: Dict[str, Union[FormattingType, Dict[str, Any]]],
+):
+    """
+    Internal helper to apply conditional and number formatting to specific columns.
+
+    Supported Types:
+        - "2-color": Gradient between two colors.
+        - "3-color": Gradient between three colors (min, mid, max).
+        - "highlight": Highlight min or max value (target="min" or "max").
+        - "number"/"medium number": #,##0
+        - "decimal": #,##0.00
+        - "currency": $#,##0.00
+        - "percent": 0.0%
+    """
+    workbook = writer.book
+    worksheet = writer.sheets[sheet]
+    max_row = len(df)
+    cols = list(df.columns)
+
+    for col_name, format_config in column_formats.items():
+        if col_name not in cols:
+            continue
+
+        col_idx = cols.index(col_name)
+        # Excel range (skipping header)
+        cell_range = f"{chr(65 + col_idx)}2:{chr(65 + col_idx)}{max_row + 1}"
+
+        if isinstance(format_config, str):
+            format_config = {"type": format_config}
+
+        fmt_type = format_config.get("type")
+
+        if fmt_type == "2-color":
+            worksheet.conditional_format(
+                cell_range,
+                {
+                    "type": "2_color_scale",
+                    "min_color": format_config.get("min_color", "#FFFFFF"),
+                    "max_color": format_config.get("max_color", "#63BE7B"),
+                    "min_type": format_config.get("min_type", "min"),
+                    "max_type": format_config.get("max_type", "max"),
+                    "min_value": format_config.get("min_value"),
+                    "max_value": format_config.get("max_value"),
+                },
+            )
+        elif fmt_type == "3-color":
+            worksheet.conditional_format(
+                cell_range,
+                {
+                    "type": "3_color_scale",
+                    "min_color": format_config.get("min_color", "#F8696B"),
+                    "mid_color": format_config.get("mid_color", "#FFEB84"),
+                    "max_color": format_config.get("max_color", "#63BE7B"),
+                    "min_type": format_config.get("min_type", "min"),
+                    "mid_type": format_config.get("mid_type", "percentile"),
+                    "max_type": format_config.get("max_type", "max"),
+                    "min_value": format_config.get("min_value"),
+                    "mid_value": format_config.get("mid_value", 50),
+                    "max_value": format_config.get("max_value"),
+                },
+            )
+        elif fmt_type == "highlight":
+            target = format_config.get("target", "max")
+            color = format_config.get("color", "#C6EFCE")
+            font_color = format_config.get("font_color", "#006100")
+
+            fmt = workbook.add_format({"bg_color": color, "font_color": font_color})
+            
+            # Using formula for min/max highlight
+            col_letter = chr(65 + col_idx)
+            if target == "max":
+                formula = f"={col_letter}2=MAX(${col_letter}$2:${col_letter}${max_row + 1})"
+            else:
+                formula = f"={col_letter}2=MIN(${col_letter}$2:${col_letter}${max_row + 1})"
+
+            worksheet.conditional_format(
+                cell_range, {"type": "formula", "criteria": formula, "format": fmt}
+            )
+
+        # Number formats
+        num_fmt_str = None
+        if fmt_type == "number" or fmt_type == "medium number":
+            num_fmt_str = "#,##0"
+        elif fmt_type == "decimal":
+            num_fmt_str = "#,##0.00"
+        elif fmt_type == "currency":
+            num_fmt_str = "$#,##0.00"
+        elif fmt_type == "percent":
+            num_fmt_str = "0.0%"
+
+        if num_fmt_str:
+            num_fmt = workbook.add_format({"num_format": num_fmt_str})
+            worksheet.set_column(col_idx, col_idx, None, num_fmt)
+
     return None
 
 
