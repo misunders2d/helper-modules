@@ -82,7 +82,10 @@ def export_to_excel(
     sheet_names: List[str],
     filename: str = "test.xlsx",
     out_folder: str | None = None,
-    column_formats: Dict[str, Union[FormattingType, Dict[str, Any]]] | None = None,
+    column_formats: (
+        Dict[str, Union[FormattingType, Dict[str, Any], List[Union[FormattingType, Dict[str, Any]]]]]
+        | None
+    ) = None,
 ) -> None:
     """
     Exports dataframes to multiple sheets in an Excel file with optional column formatting.
@@ -243,7 +246,9 @@ def apply_formatting(
     df: pd.DataFrame,
     writer: pd.ExcelWriter,
     sheet: str,
-    column_formats: Dict[str, Union[FormattingType, Dict[str, Any]]],
+    column_formats: Dict[
+        str, Union[FormattingType, Dict[str, Any], List[Union[FormattingType, Dict[str, Any]]]]
+    ],
 ):
     """
     Internal helper to apply conditional and number formatting to specific columns.
@@ -256,13 +261,15 @@ def apply_formatting(
         - "decimal": #,##0.00
         - "currency": $#,##0.00
         - "percent": 0.0%
+
+    Note: A list of formats can be passed for a single column (e.g., ["3-color", "decimal"]).
     """
     workbook = writer.book
     worksheet = writer.sheets[sheet]
     max_row = len(df)
     cols = list(df.columns)
 
-    for col_name, format_config in column_formats.items():
+    for col_name, format_config_raw in column_formats.items():
         if col_name not in cols:
             continue
 
@@ -270,72 +277,83 @@ def apply_formatting(
         # Excel range (skipping header)
         cell_range = f"{chr(65 + col_idx)}2:{chr(65 + col_idx)}{max_row + 1}"
 
-        if isinstance(format_config, str):
-            format_config = {"type": format_config}
+        # Normalize to a list of configs
+        if isinstance(format_config_raw, list):
+            configs = format_config_raw
+        else:
+            configs = [format_config_raw]
 
-        fmt_type = format_config.get("type")
+        for format_config in configs:
+            if isinstance(format_config, str):
+                format_config = {"type": format_config}
 
-        if fmt_type == "2-color":
-            worksheet.conditional_format(
-                cell_range,
-                {
-                    "type": "2_color_scale",
-                    "min_color": format_config.get("min_color", "#FFFFFF"),
-                    "max_color": format_config.get("max_color", "#63BE7B"),
-                    "min_type": format_config.get("min_type", "min"),
-                    "max_type": format_config.get("max_type", "max"),
-                    "min_value": format_config.get("min_value"),
-                    "max_value": format_config.get("max_value"),
-                },
-            )
-        elif fmt_type == "3-color":
-            worksheet.conditional_format(
-                cell_range,
-                {
-                    "type": "3_color_scale",
-                    "min_color": format_config.get("min_color", "#F8696B"),
-                    "mid_color": format_config.get("mid_color", "#FFEB84"),
-                    "max_color": format_config.get("max_color", "#63BE7B"),
-                    "min_type": format_config.get("min_type", "min"),
-                    "mid_type": format_config.get("mid_type", "percentile"),
-                    "max_type": format_config.get("max_type", "max"),
-                    "min_value": format_config.get("min_value"),
-                    "mid_value": format_config.get("mid_value", 50),
-                    "max_value": format_config.get("max_value"),
-                },
-            )
-        elif fmt_type == "highlight":
-            target = format_config.get("target", "max")
-            color = format_config.get("color", "#C6EFCE")
-            font_color = format_config.get("font_color", "#006100")
+            fmt_type = format_config.get("type")
 
-            fmt = workbook.add_format({"bg_color": color, "font_color": font_color})
-            
-            # Using formula for min/max highlight
-            col_letter = chr(65 + col_idx)
-            if target == "max":
-                formula = f"={col_letter}2=MAX(${col_letter}$2:${col_letter}${max_row + 1})"
-            else:
-                formula = f"={col_letter}2=MIN(${col_letter}$2:${col_letter}${max_row + 1})"
+            if fmt_type == "2-color":
+                worksheet.conditional_format(
+                    cell_range,
+                    {
+                        "type": "2_color_scale",
+                        "min_color": format_config.get("min_color", "#FFFFFF"),
+                        "max_color": format_config.get("max_color", "#63BE7B"),
+                        "min_type": format_config.get("min_type", "min"),
+                        "max_type": format_config.get("max_type", "max"),
+                        "min_value": format_config.get("min_value"),
+                        "max_value": format_config.get("max_value"),
+                    },
+                )
+            elif fmt_type == "3-color":
+                worksheet.conditional_format(
+                    cell_range,
+                    {
+                        "type": "3_color_scale",
+                        "min_color": format_config.get("min_color", "#F8696B"),
+                        "mid_color": format_config.get("mid_color", "#FFEB84"),
+                        "max_color": format_config.get("max_color", "#63BE7B"),
+                        "min_type": format_config.get("min_type", "min"),
+                        "mid_type": format_config.get("mid_type", "percentile"),
+                        "max_type": format_config.get("max_type", "max"),
+                        "min_value": format_config.get("min_value"),
+                        "mid_value": format_config.get("mid_value", 50),
+                        "max_value": format_config.get("max_value"),
+                    },
+                )
+            elif fmt_type == "highlight":
+                target = format_config.get("target", "max")
+                color = format_config.get("color", "#C6EFCE")
+                font_color = format_config.get("font_color", "#006100")
 
-            worksheet.conditional_format(
-                cell_range, {"type": "formula", "criteria": formula, "format": fmt}
-            )
+                fmt = workbook.add_format({"bg_color": color, "font_color": font_color})
 
-        # Number formats
-        num_fmt_str = None
-        if fmt_type == "number" or fmt_type == "medium number":
-            num_fmt_str = "#,##0"
-        elif fmt_type == "decimal":
-            num_fmt_str = "#,##0.00"
-        elif fmt_type == "currency":
-            num_fmt_str = "$#,##0.00"
-        elif fmt_type == "percent":
-            num_fmt_str = "0.0%"
+                # Using formula for min/max highlight
+                col_letter = chr(65 + col_idx)
+                if target == "max":
+                    formula = (
+                        f"={col_letter}2=MAX(${col_letter}$2:${col_letter}${max_row + 1})"
+                    )
+                else:
+                    formula = (
+                        f"={col_letter}2=MIN(${col_letter}$2:${col_letter}${max_row + 1})"
+                    )
 
-        if num_fmt_str:
-            num_fmt = workbook.add_format({"num_format": num_fmt_str})
-            worksheet.set_column(col_idx, col_idx, None, num_fmt)
+                worksheet.conditional_format(
+                    cell_range, {"type": "formula", "criteria": formula, "format": fmt}
+                )
+
+            # Number formats
+            num_fmt_str = None
+            if fmt_type == "number" or fmt_type == "medium number":
+                num_fmt_str = "#,##0"
+            elif fmt_type == "decimal":
+                num_fmt_str = "#,##0.00"
+            elif fmt_type == "currency":
+                num_fmt_str = "$#,##0.00"
+            elif fmt_type == "percent":
+                num_fmt_str = "0.0%"
+
+            if num_fmt_str:
+                num_fmt = workbook.add_format({"num_format": num_fmt_str})
+                worksheet.set_column(col_idx, col_idx, None, num_fmt)
 
     return None
 
