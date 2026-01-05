@@ -1,5 +1,5 @@
 import os
-from typing import List, Literal, Optional, Union, Dict, Any
+from typing import List, Literal, Union, Dict, Any
 
 FormattingType = Literal[
     "2-color",
@@ -343,7 +343,10 @@ def apply_formatting(
             # Number formats
             num_fmt_str = None
             if fmt_type == "number" or fmt_type == "medium number":
+                additional_decimals = "." + "0" * int(format_config.get("decimals", 0))
                 num_fmt_str = "#,##0"
+                if len(additional_decimals) > 1:
+                    num_fmt_str += additional_decimals
             elif fmt_type == "decimal":
                 num_fmt_str = "#,##0.00"
             elif fmt_type == "currency":
