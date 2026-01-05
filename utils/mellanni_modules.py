@@ -258,11 +258,12 @@ def apply_formatting(
         - "3-color": Gradient between three colors (min, mid, max).
         - "highlight": Highlight min or max value (target="min" or "max").
         - "number"/"medium number": #,##0
-        - "decimal": #,##0.00
+        - "decimal": #,##0.00 (optional: "precision" to specify decimal points)
         - "currency": $#,##0.00
         - "percent": 0.0%
 
     Note: A list of formats can be passed for a single column (e.g., ["3-color", "decimal"]).
+    Example for custom precision: {"type": "decimal", "precision": 3}
     """
     workbook = writer.book
     worksheet = writer.sheets[sheet]
@@ -343,12 +344,10 @@ def apply_formatting(
             # Number formats
             num_fmt_str = None
             if fmt_type == "number" or fmt_type == "medium number":
-                additional_decimals = "." + "0" * int(format_config.get("decimals", 0))
                 num_fmt_str = "#,##0"
-                if len(additional_decimals) > 1:
-                    num_fmt_str += additional_decimals
             elif fmt_type == "decimal":
-                num_fmt_str = "#,##0.00"
+                precision = format_config.get("precision", 2)
+                num_fmt_str = f"#,##0.{'0' * precision}" if precision > 0 else "#,##0"
             elif fmt_type == "currency":
                 num_fmt_str = "$#,##0.00"
             elif fmt_type == "percent":
