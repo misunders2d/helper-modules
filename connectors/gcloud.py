@@ -84,6 +84,8 @@ def normalize_columns(df):
         .replace("/", "_")
         .replace("(", "")
         .replace(")", "")
+        .replace("$", "dollar")
+        .replace("%", "percent")
         .lower()
         for x in df.columns
     ]
