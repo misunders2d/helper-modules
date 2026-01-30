@@ -12,13 +12,12 @@ FormattingType = Literal[
     "percent",
 ]
 import pandas as pd
-import re
-import sys, subprocess
-from connectors import gdrive as gd
+import sys
+import subprocess
 import customtkinter
 import datetime
 
-from ctk_gui.ctk_windows import PopupError, PopupYesNo
+from ctk_gui.ctk_windows import PopupError
 
 excluded_collections = [
     "Cotton 300TC Percale Sheet Set",
@@ -83,7 +82,14 @@ def export_to_excel(
     filename: str = "test.xlsx",
     out_folder: str | None = None,
     column_formats: (
-        Dict[str, Union[FormattingType, Dict[str, Any], List[Union[FormattingType, Dict[str, Any]]]]]
+        Dict[
+            str,
+            Union[
+                FormattingType,
+                Dict[str, Any],
+                List[Union[FormattingType, Dict[str, Any]]],
+            ],
+        ]
         | None
     ) = None,
 ) -> None:
@@ -117,6 +123,7 @@ def export_to_excel(
         export_to_excel([df], ["Report"], "sales.xlsx", column_formats=column_formats)
     """
     from customtkinter import filedialog
+    from tkinter import messagebox
 
     if not out_folder:
         out_folder = filedialog.askdirectory(
@@ -132,7 +139,7 @@ def export_to_excel(
                     if column_formats:
                         apply_formatting(df, writer, sheet_name, column_formats)
     except PermissionError:
-        print(f"{filename} is open, please close the file first")
+        messagebox.showerror(f"{filename} is open, please close the file first")
         export_to_excel(dfs, sheet_names, filename, out_folder)
     except Exception as e:
         print(e)
@@ -247,7 +254,10 @@ def apply_formatting(
     writer: pd.ExcelWriter,
     sheet: str,
     column_formats: Dict[
-        str, Union[FormattingType, Dict[str, Any], List[Union[FormattingType, Dict[str, Any]]]]
+        str,
+        Union[
+            FormattingType, Dict[str, Any], List[Union[FormattingType, Dict[str, Any]]]
+        ],
     ],
 ):
     """
@@ -329,13 +339,9 @@ def apply_formatting(
                 # Using formula for min/max highlight
                 col_letter = chr(65 + col_idx)
                 if target == "max":
-                    formula = (
-                        f"={col_letter}2=MAX(${col_letter}$2:${col_letter}${max_row + 1})"
-                    )
+                    formula = f"={col_letter}2=MAX(${col_letter}$2:${col_letter}${max_row + 1})"
                 else:
-                    formula = (
-                        f"={col_letter}2=MIN(${col_letter}$2:${col_letter}${max_row + 1})"
-                    )
+                    formula = f"={col_letter}2=MIN(${col_letter}$2:${col_letter}${max_row + 1})"
 
                 worksheet.conditional_format(
                     cell_range, {"type": "formula", "criteria": formula, "format": fmt}
@@ -347,7 +353,9 @@ def apply_formatting(
                 num_fmt_str = "#,##0"
             elif fmt_type == "decimal":
                 precision = format_config.get("precision", 2)
-                num_fmt_str = f"#,##0.{'0' * precision}" if precision > 0 else "#,##0"
+                num_fmt_str = (
+                    f"#,##0.{'0' * int(precision)}" if int(precision) > 0 else "#,##0"
+                )
             elif fmt_type == "currency":
                 num_fmt_str = "$#,##0.00"
             elif fmt_type == "percent":
