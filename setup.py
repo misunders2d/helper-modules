@@ -1,8 +1,8 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="helper_modules",  # Name of your package
-    version="0.1.51",  # Version number
+    version="0.1.52",  # Version number
     description="A collection of helper modules",
     author="Sergey",
     author_email="2djohar@gmail.com",

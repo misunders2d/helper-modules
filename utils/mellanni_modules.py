@@ -372,7 +372,10 @@ def apply_formatting(
             elif fmt_type == "currency":
                 num_fmt_str = "$#,##0.00"
             elif fmt_type == "percent":
-                num_fmt_str = "0.0%"
+                precision = format_config.get("precision", 1)
+                num_fmt_str = (
+                    f"0.{'0' * int(precision)}%" if int(precision) > 0 else "0.0%"
+                )
 
             if num_fmt_str:
                 num_fmt = workbook.add_format({"num_format": num_fmt_str})
