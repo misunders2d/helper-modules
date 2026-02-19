@@ -1,5 +1,5 @@
 import os
-from typing import List, Literal, Union, Dict, Any
+from typing import Any, Dict, List, Literal, Union
 
 FormattingType = Literal[
     "2-color",
@@ -11,11 +11,12 @@ FormattingType = Literal[
     "currency",
     "percent",
 ]
-import pandas as pd
-import sys
-import subprocess
-import customtkinter
 import datetime
+import subprocess
+import sys
+
+import customtkinter
+import pandas as pd
 
 from ctk_gui.ctk_windows import PopupError
 
@@ -114,16 +115,27 @@ def export_to_excel(
                 "max_color": "#63BE7B", # Green
                 "mid_value": 0
             },
-            "Stock Level": {
-                "type": "2-color",
-                "min_color": "#FFFFFF",
-                "max_color": "#00FF00"
-            }
+            "dos_inbound": [
+                {
+                    "type": "3-color",
+                    "min_value": 49,
+                    "min_color": "red",
+                    "min_type": "num",
+                    "max_value": 90,
+                    "max_color": "green",
+                    "max_type": "num",
+                    "mid_value": 60,
+                    "mid_color": "yellow",
+                    "mid_type": "num",
+                },
+                {"type": "decimal", "precision": 1},
+            ],
         }
         export_to_excel([df], ["Report"], "sales.xlsx", column_formats=column_formats)
     """
-    from customtkinter import filedialog
     from tkinter import messagebox
+
+    from customtkinter import filedialog
 
     if not out_folder:
         out_folder = filedialog.askdirectory(
@@ -148,8 +160,9 @@ def export_to_excel(
 
 
 def get_comments():
-    from openpyxl import load_workbook
     import os
+
+    from openpyxl import load_workbook
 
     file_path = customtkinter.filedialog.askopenfilename(
         title="Select the file processing report"
@@ -199,8 +212,8 @@ def password_generator(x):
     str
     password
     """
-    import string
     import random
+    import string
 
     text_part = x // 3 * 2
     num_part = x - text_part
