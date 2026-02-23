@@ -6,8 +6,6 @@ from typing import Any, Dict, List, Literal, Union
 
 import pandas as pd
 
-from ctk_gui.ctk_windows import PopupError
-
 FormattingType = Literal[
     "2-color",
     "3-color",
@@ -163,6 +161,8 @@ def get_comments():
 
     import customtkinter
     from openpyxl import load_workbook
+
+    from ctk_gui.ctk_windows import PopupError
 
     file_path = customtkinter.filedialog.askopenfilename(
         title="Select the file processing report"
