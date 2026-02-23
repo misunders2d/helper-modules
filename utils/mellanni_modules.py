@@ -1,5 +1,12 @@
+import datetime
 import os
+import subprocess
+import sys
 from typing import Any, Dict, List, Literal, Union
+
+import pandas as pd
+
+from ctk_gui.ctk_windows import PopupError
 
 FormattingType = Literal[
     "2-color",
@@ -11,14 +18,6 @@ FormattingType = Literal[
     "currency",
     "percent",
 ]
-import datetime
-import subprocess
-import sys
-
-import customtkinter
-import pandas as pd
-
-from ctk_gui.ctk_windows import PopupError
 
 excluded_collections = [
     "Cotton 300TC Percale Sheet Set",
@@ -162,6 +161,7 @@ def export_to_excel(
 def get_comments():
     import os
 
+    import customtkinter
     from openpyxl import load_workbook
 
     file_path = customtkinter.filedialog.askopenfilename(
