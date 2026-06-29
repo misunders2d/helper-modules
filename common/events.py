@@ -1,6 +1,6 @@
 import pandas as pd
-from dateutil.relativedelta import relativedelta
 from dateutil import parser
+from dateutil.relativedelta import relativedelta
 
 events = {
     "PD22": ["2022-07-12", "2022-07-13"],
@@ -16,6 +16,8 @@ events = {
     "PD25": ["2025-07-08", "2025-07-11"],
     "PFE25": ["2025-10-07", "2025-10-08"],
     "BFCM25": ["2025-11-28", "2025-12-01"],
+    "BigSpringSale26": ["2026-03-25", "2026-03-31"],
+    "PD26": ["2026-06-23", "2026-06-26"],
 }
 
 event_dates = {
