@@ -19,6 +19,7 @@ MATRIX_FILE_ID = "1hnBbUMWQh4qgqowVIcgRll4zFvxAwc0Q"  # Master Product Library -
 SMALL_STANDARD = "Small standard size"
 LARGE_STANDARD = "Large standard size"
 SMALL_BULKY = "Small bulky"
+MEDIUM_BULKY = "Medium bulky"
 LARGE_BULKY = "Large bulky"
 EXTRA_LARGE_0_50 = "Extra large up to 50"
 EXTRA_LARGE_50_70 = "Extra large 50 to 70"
@@ -134,11 +135,16 @@ def get_shipping_weight(df):
     return df
 
 
-def get_size_tier(df):
+def get_size_tier(df, as_of=None):
+    """Apply the 2027 small/medium bulky split; other bulky tiers stay legacy."""
+    fee_date = today if as_of is None else pd.Timestamp(as_of)
+    new_bulky = fee_date >= pd.Timestamp("2027-01-15")
     max_side = df[["l", "w", "h"]].max(axis=1)
     min_side = df[["l", "w", "h"]].min(axis=1)
     med_side = df[["l", "w", "h"]].median(axis=1)
     length_girth = (min_side + med_side) * 2
+    if new_bulky:
+        length_girth = length_girth + max_side
     weight = df["shipping_weight"].copy()
 
     conditions = [
@@ -153,6 +159,15 @@ def get_size_tier(df):
         (
             SMALL_BULKY,
             (weight <= 50)
+            & (max_side <= (28 if new_bulky else 37))
+            & (med_side <= (24 if new_bulky else 28))
+            & (min_side <= 20)
+            & (length_girth <= 130),
+        ),
+        (
+            MEDIUM_BULKY,
+            new_bulky
+            & (weight <= 50)
             & (max_side <= 37)
             & (med_side <= 28)
             & (min_side <= 20)
@@ -298,14 +313,16 @@ def get_storage_fee(df):
 def get_fulfillment_fee(df, as_of=None, schedule=None):
     """Calculate non-apparel base fulfillment fees, excluding surcharge and SIPP.
 
-    Default calls use published standard-size rates from January 15, 2026.
-    Other 2026 size tiers retain legacy calculations, labeled in output.
+    Default calls use published standard-size and small-bulky rates from
+    January 15, 2026. Other size tiers retain legacy calculations in 2026.
     ``schedule="legacy"`` always uses original tables/formulas at ``as_of``.
-    Explicit published standard-size schedules: 2026_non_peak, 2026_peak,
-    2027_non_peak. Source: 2027 US FBA fee PDF, pp. 1-3, 12-13.
-    Published schedules round excess weight UP per 4 oz interval, unlike legacy.
-    New bulky/oversize classification requires the separate Product size tiers
-    reference, absent from that PDF; explicit schedules reject those rows.
+    Explicit published schedules: 2026_non_peak, 2026_peak, 2027_non_peak.
+    Sources: 2027 US FBA fee PDF, pp. 2-3, 7-8; Product size tiers, pp. 2-4.
+    Excess weight rounds UP per 4 oz (standard) or 1 lb (small/medium bulky).
+    For 2027, dimensioned rows are reclassified using the small/medium split;
+    preclassified rows without dimensions must already use the 2027 tiers.
+    Medium-bulky 2026 comparison fees use the former small-bulky rates.
+    Other bulky/oversize tiers remain unsupported in published schedules.
     2027 peak is unpublished and must never inherit the 2026 peak table.
     """
     fee_date = today if as_of is None else pd.Timestamp(as_of)
@@ -315,9 +332,9 @@ def get_fulfillment_fee(df, as_of=None, schedule=None):
         if fee_date >= pd.Timestamp("2027-10-15"):
             raise ValueError("No published fulfillment schedule for this date")
         if pd.Timestamp("2026-01-15") <= fee_date < pd.Timestamp("2027-01-15"):
-            # Correct standard-size active rates without changing unrelated tiers.
+            # Correct supported active rates without changing unrelated tiers.
             result = get_fulfillment_fee(df, as_of=fee_date, schedule="legacy")
-            standard = result["size_tier"].isin([SMALL_STANDARD, LARGE_STANDARD])
+            standard = result["size_tier"].isin([SMALL_STANDARD, LARGE_STANDARD, SMALL_BULKY])
             result["fulfillment_schedule"] = "legacy (non-standard size)"
             selected = "2026_peak" if (fee_date.month, fee_date.day) >= (10, 15) else "2026_non_peak"
             if fee_date.month == 1 and fee_date.day <= 14:
@@ -414,8 +431,20 @@ def get_fulfillment_fee(df, as_of=None, schedule=None):
                 (6.15, 7.16, 7.73),
             ],
         }
-        if not df["size_tier"].isin([SMALL_STANDARD, LARGE_STANDARD]).all():
-            raise ValueError("Published schedules support standard-size only; new bulky/oversize tier definitions required")
+        bulky = {
+            "2026_non_peak": (6.78, 7.55, 7.55),
+            "2026_peak": (7.82, 8.59, 8.59),
+            "2027_non_peak": (6.73, 7.51, 7.51),
+        }
+        # The old small-bulky tier splits in 2027; never blindly reuse its label.
+        future_tiers = df["size_tier"]
+        if {"l", "w", "h", "individual weight lbs"}.issubset(df.columns):
+            future = get_size_tier(get_shipping_weight(df.copy()), as_of="2027-01-15")
+            future_tiers = future["size_tier"]
+            if schedule == "2027_non_peak":
+                df = future
+        if not df["size_tier"].isin([SMALL_STANDARD, LARGE_STANDARD, SMALL_BULKY, MEDIUM_BULKY]).all():
+            raise ValueError("Published schedules support standard-size and small/medium bulky only")
         df.loc[df["size_tier"] == SMALL_STANDARD, "shipping_weight"] = df["individual weight lbs"]
         if not (np.isfinite(df[["shipping_weight", "price"]]).all().all()
                 and df["shipping_weight"].gt(0).all() and df["price"].ge(0).all()):
@@ -437,9 +466,18 @@ def get_fulfillment_fee(df, as_of=None, schedule=None):
                         amount = amount + 0.08 * np.ceil((df["shipping_weight"] - 3) * 4)
                     amounts.append(amount)
                     lower = upper
+            conditions.append(df["size_tier"].isin([SMALL_BULKY, MEDIUM_BULKY]) & df["shipping_weight"].le(50))
+            base = np.take(bulky[name], price_band)
+            if name == "2027_non_peak":
+                base = base + np.where(future_tiers == MEDIUM_BULKY, 0.15, 0)
+            per_lb = 0.39 if name == "2027_non_peak" else 0.38
+            amounts.append(base + per_lb * np.ceil((df["shipping_weight"] - 1).clip(lower=0)))
             if not (np.sum(conditions, axis=0) == 1).all():
                 raise ValueError("Each product must match exactly one published weight tier")
             values[name] = np.round(np.select(conditions, amounts, np.nan), 2)
+            if name == "2027_non_peak":
+                supported = future_tiers.isin([SMALL_STANDARD, LARGE_STANDARD, SMALL_BULKY, MEDIUM_BULKY])
+                values[name] = np.where(supported, values[name], np.nan)
             df["fba_" + name + "_fee"] = values[name]
         df["fba_2027_peak_fee"] = np.nan  # Not published in supplied PDF.
         year = schedule[:4]
